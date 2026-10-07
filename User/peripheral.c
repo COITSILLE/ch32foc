@@ -312,7 +312,7 @@ void ADC1_Init(){
     // ADC1->ISQR = ((FOC_ADC_JL - 1u) << 20) | (9u << 10) | (10u << 15);
     ADC_ExternalTrigInjectedConvCmd(ADC1, ENABLE);
 
-    ADC_RegularChannelConfig(ADC1, ADC_Channel_2, 1, ADC_SampleTime_23Cycles5);
+    ADC_RegularChannelConfig(ADC1, ADC_Channel_15, 1, ADC_SampleTime_23Cycles5); //PA2
 
     ADC_Cmd(ADC1, ENABLE);
     ADC_MovingAverageCmd(ADC1, ENABLE);
