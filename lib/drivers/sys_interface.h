@@ -1,5 +1,5 @@
 #pragma once
 
-#include "debug.h"
+#include "ch32m030_conf.h"
 
 #define __CORECLOCK_HZ__ (SystemCoreClock)

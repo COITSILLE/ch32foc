@@ -26,7 +26,7 @@ void RingBuffer<type>::push(type data){
 }
 
 template<typename type>
-type RingBuffer<type>::pop(){
+type RingBuffer<type>::pop(bool* empty){
 #ifdef USING_FREERTOS
     UBaseType_t old_mask = portSET_INTERRUPT_MASK_FROM_ISR();
 #endif
@@ -35,6 +35,7 @@ type RingBuffer<type>::pop(){
 #ifdef USING_FREERTOS
         portCLEAR_INTERRUPT_MASK_FROM_ISR(old_mask);
 #endif
+        if(empty) *empty = true;
         return type();
     }
     type data = this->buffer[this->head_idx];
@@ -42,6 +43,7 @@ type RingBuffer<type>::pop(){
 #ifdef USING_FREERTOS
     portCLEAR_INTERRUPT_MASK_FROM_ISR(old_mask);
 #endif
+    if(empty) *empty = false;
     return data;
 }
 #endif /*__cplusplus*/

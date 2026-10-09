@@ -3,6 +3,7 @@
 #include "ch32m030_tim.h"
 #include "ch32m030_dma.h"
 #include "ch32m030_uart.h"
+#include "core_riscv.h"
 #include "debug.h"
 #include "peripheral.h"
 #include "system_ch32m030.h"
@@ -23,6 +24,35 @@ void PERIPHS_INIT(void)
 
     TIM3_Init();
     Simu_SSI_Perips_Init();
+
+    TIM2_Init();
+
+    GPIO_LED_Init();
+    GPIO_Sel_Init();
+}
+
+void UART_Init(uint32_t baudrate){
+    GPIO_InitTypeDef  GPIO_InitStructure;
+    USART_InitTypeDef USART_InitStructure;
+
+    RCC_PB2PeriphClockCmd(RCC_PB2Periph_USART1 | RCC_PB2Periph_GPIOB | RCC_PB2Periph_AFIO, ENABLE);
+    GPIO_PinRemapConfig(GPIO_PartialRemap2_USART1, ENABLE);
+
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_30MHz;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_OD;
+    GPIO_Init(GPIOB, &GPIO_InitStructure);
+
+    USART_InitStructure.USART_BaudRate = 115200;
+    USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+    USART_InitStructure.USART_StopBits = USART_StopBits_1;
+    USART_InitStructure.USART_Parity = USART_Parity_No;
+    USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+    USART_InitStructure.USART_Mode = USART_Mode_Tx;
+
+    USART_IrDACmd(USART1, DISABLE);
+    USART_HalfDuplexCmd(USART1, ENABLE);
+    USART_Init(USART1, &USART_InitStructure);
 }
 
 /*********************************************************************
@@ -68,6 +98,27 @@ void GPIO_ProbeIsr_Init(void)
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_30MHz;
     GPIO_Init(GPIOA, &GPIO_InitStructure);
+}
+
+void GPIO_LED_Init(){
+    GPIO_InitTypeDef GPIO_InitStructure = {0};
+
+    RCC_PB2PeriphClockCmd(RCC_PB2Periph_GPIOA, ENABLE);
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_7;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_30MHz;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+    GPIO_SetBits(GPIOA, GPIO_Pin_7);
+}
+
+void GPIO_Sel_Init(){
+    GPIO_InitTypeDef GPIO_InitStructure = {0};
+
+    RCC_PB2PeriphClockCmd(RCC_PB2Periph_GPIOB, ENABLE);
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_30MHz;
+    GPIO_Init(GPIOB, &GPIO_InitStructure);
 }
 
 void TIM1_Init(){
@@ -158,13 +209,15 @@ void TIM2_Init(void)
 
     RCC_PB1PeriphClockCmd(RCC_PB1Periph_TIM2, ENABLE);
 
-    t.TIM_Prescaler = 1 - 1;    
-    t.TIM_Period = 65535;       /* ARR=0xFFFF，计数器溢出不影响采样标记 */
+    t.TIM_Prescaler = 72 - 1;    
+    t.TIM_Period = 1000 - 1; // 1kHz
     t.TIM_ClockDivision = TIM_CKD_DIV1;
     t.TIM_CounterMode = TIM_CounterMode_Up;
     TIM_TimeBaseInit(TIM2, &t);
 
-    TIM_SelectOutputTrigger(TIM2, TIM_TRGOSource_OC1Ref);   /* TRGO=UG，复位 CNT=0 */
+    TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
+    NVIC_SetPriority(TIM2_IRQn, 2 << 6);
+    NVIC_EnableIRQ(TIM2_IRQn);
 
     TIM_Cmd(TIM2, ENABLE);
 }

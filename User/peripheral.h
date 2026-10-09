@@ -14,9 +14,10 @@
 extern "C" {
 #endif
 
-void I2C1_Init(void);
+void UART_Init(uint32_t baudrate);
 void GPIO_ProbeIsr_Init(void);   /* PA6 探针：ADC ISR 窗口（进 ISR 高、出 ISR 低，软件时序） */
-void GPIO_Probe_Init(void);      /* PA7 探针：角度样本提交时翻转（示波器量测读取频率） */
+void GPIO_LED_Init();
+void GPIO_Sel_Init();
 void TIM1_Init(void);
 void TIM2_Init(void);   /* 采样开始硬件标记：TIM2 从模式复位(TRGO) + PA5/PA4 输出 */
 void TIM3_Init(void);   /* 编码器驱动：2kHz 更新中断 */

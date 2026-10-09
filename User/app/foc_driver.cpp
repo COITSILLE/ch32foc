@@ -8,6 +8,7 @@ FocDriver::FocDriver(MT6701_SSI& enc)
  , pid_spd()
  , pid_pos()
 {
+    pid_pos.setDt((float)SPD_DT * 2.0f);
     pid_pos.setDiffMode(DiffMode::DisableDiff);
 }
 
@@ -36,7 +37,8 @@ void FocDriver::updateCurrLoop(){
     
     readMechanAngFromEnc();
 
-    this->elec_ang = - q24_sub_w(mech_ang * POLE_PAIRS, this->ang_calib);
+    // this->elec_ang = - q24_sub_w(mech_ang * POLE_PAIRS, this->ang_calib);
+    this->elec_ang = q24_sub_w(q24_mul_w(mech_ang, q24(POLE_PAIRS)), this->ang_calib);
 
     updateMechSpeed();
 
@@ -56,9 +58,9 @@ void FocDriver::updateCurrLoop(){
     q24_t v_q_ref = (q24_t)this->pid_iq.getOutput(this->i_q_fb_filt_);
 
     /* forward */
-    q24_t elec_diff = this->mech_ang_diff * POLE_PAIRS;
+    q24_t elec_diff = q24_mul_w(this->mech_ang_diff, q24(POLE_PAIRS));
     q24_t w_e_L = q24_mul_w(elec_diff, K_L);
-    v_d_ref = q24_add_w(v_d_ref, q24_mul_w(w_e_L, this->i_q_fb_filt_));
+    v_d_ref = q24_sub_w(v_d_ref, q24_mul_w(w_e_L, this->i_q_fb_filt_));
     v_q_ref = q24_add_w(v_q_ref, q24_mul_w(w_e_L, this->i_d_fb_filt_));
 
     /* clamp again the forward */
@@ -97,7 +99,22 @@ void FocDriver::updateMechSpeed(){
     this->mech_ang_diff = q24_add_w(this->mech_ang_diff,
                             q24_mul_w(q24_sub_w(mech_ang_diff_raw, this->mech_ang_diff), speed_filt_coeff_));
 
-    this->mech_speed = mech_ang_diff * FOC_DT_INV;
+    // this->mech_speed = mech_ang_diff * FOC_DT_INV;
+    eso(this->mech_ang_diff / q24(FOC_DT));
+}
+/**
+ * x_1_hat = w, x_2_hat = d_hat
+ * J/Kt * dw/dt = -B/Kt * w + iq + d, let J' = J/Kt, B' = B/Kt, then
+ * dw / dt = -B'/J' * w + 1/J' * iq - d/J' = Kt/J * (iq + d) + (-B/J) * w
+ * assume dd/dt = 0.
+ * dt is scaled to the right side so that q24_t can fit in
+*/
+void FocDriver::eso(q24_t mech_speed_meas){
+    q24_t d_mech_speed = K_Kt_div_J * (i_q_fb_filt_ + disturbance) - K_B_div_J * mech_speed + eso_coeffs.l1 * (mech_speed_meas - mech_speed);
+    q24_t d_distur = eso_coeffs.l2 * (mech_speed_meas - mech_speed);
+
+    mech_speed = q24_add_w(mech_speed, d_mech_speed);
+    disturbance = q24_add_w(disturbance, d_distur);
 }
 
 void FocDriver::updateSpeedLoop(){
@@ -106,7 +123,9 @@ void FocDriver::updateSpeedLoop(){
     if (loop_mode_ == FocLoopMode::Pos){
         pid_spd.setTarget(speed_loop_cmd);
     }
-    this->current_loop_cmd = pid_spd.getOutput(mech_speed);
+    q24_t current_loop_cmd_raw = pid_spd.getOutput(mech_speed) - disturbance;
+    pid_spd.clamp(&current_loop_cmd_raw);
+    this->current_loop_cmd = current_loop_cmd_raw;
 }
 
 void FocDriver::updatePosLoop(){

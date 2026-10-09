@@ -10,19 +10,24 @@
 * microcontroller manufactured by Nanjing Qinheng Microelectronics.
 *******************************************************************************/
 #include "ch32m030_it.h"
+#include "ch32m030.h"
 #include "ch32m030_gpio.h"
 #include "ch32m030_adc.h"
 #include "ch32m030_tim.h"
+#include "ch32m030_uart.h"
 #include <stdint.h>
 
 void NMI_Handler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 void HardFault_Handler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 void ADC_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 void DMA1_Channel3_IRQHandler(void) __attribute__((interrupt));
+void USART1_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
+void TIM2_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 
 void ADC_JEOC_irqHandler(void);
 void updateEncoder(void);
 void ssi_irqHandler();
+void task_outer_loop(void);
 
 /*********************************************************************
  * @fn      NMI_Handler
@@ -79,4 +84,18 @@ void ADC_IRQHandler(void)
     }
 
     ADC_ClearITPendingBit(ADC1, ADC_IT_JEOC);
+}
+
+void USART1_IRQHandler(void)
+{
+
+    //irqHandler()
+    
+}
+
+void TIM2_IRQHandler(void){
+    if (TIM_GetITStatus(TIM2, TIM_IT_Update) == SET){
+        task_outer_loop();
+    }
+    TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
 }

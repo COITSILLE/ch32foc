@@ -6,20 +6,22 @@
 #include "alg_pid.h"
 #include "foc_math.h"
 #include "delay.h"
+#include "motor_params.h"
 #include <cstdint>
 
-static constexpr q24_t CURRENT_SCALE = q24(3.3f / (100e-3f * 8.0f));
-static constexpr q24_t CURRENT_CALIB_DEFAULT = q24(1986.0f / 4096.0f);
-static constexpr q24_t POLE_PAIRS = q24(7);
+static constexpr q24_t CURRENT_SCALE = q24(3.3f / (50e-3f * 8.0f));
+static constexpr q24_t CURRENT_CALIB_DEFAULT = q24(1986.0f / 4096.0f); // 1.6v v bias
 
 static constexpr float FOC_DT = 100e-6f;
-static constexpr q24_t FOC_DT_INV = q24(1.0f / FOC_DT);
 
-static constexpr q24_t K_L   = q24(2.8e-3f / FOC_DT);    /* L ≈ 28mH, K_L = L / dt */
-static constexpr q24_t K_LAMBDA = q24(1.65e-3f / FOC_DT);   /* λ ≈ 16.5Wb, K_LAM = λ / dt */
+static constexpr q24_t K_L   = q24(L_s / FOC_DT);
+static constexpr q24_t K_LAMBDA = q24(Lambda / FOC_DT);
 
 static constexpr uint8_t SPD_DECIM = 10;                        /* 10kHz ÷10 = 1kHz */
 static constexpr q24_t   SPD_DT    = q24(SPD_DECIM * FOC_DT);   /* 1ms */
+
+static constexpr q24_t K_B_div_J = q24(B / J * FOC_DT);
+static constexpr q24_t K_Kt_div_J = q24(K_t / J * FOC_DT);
 
 /* 外环工作模式：默认 Current = 不接外环（iq 给定仍由外部直接给 pid_iq，行为与原来一致） */
 enum class FocLoopMode : uint8_t { Current = 0, Speed, Pos };
@@ -50,10 +52,15 @@ public:
     FocLoopMode getLoopMode() const { return loop_mode_; }
 
     void setCurrentCutoffFreq(uint32_t freq) {
-        current_filt_coeff_ = q24(1.0f / (1.0f + 2.0f * M_PI * freq * FOC_DT)); 
+        current_filt_coeff_ = q24(1.0f - 1.0f / (1.0f + 2.0f * M_PI * freq * FOC_DT)); 
     }
     void setSpeedFiltCoeff(uint32_t freq) {
-        speed_filt_coeff_ = q24(1.0f / (1.0f + 2.0f * M_PI * freq * FOC_DT));
+        speed_filt_coeff_ = q24(1.0f - 1.0f / (1.0f + 2.0f * M_PI * freq * FOC_DT));
+    }
+
+    void setEsoCoeffs(float l1, float l2) {
+        eso_coeffs.l1 = q24(l1);
+        eso_coeffs.l2 = q24(l2);
     }
 
     /* current loop debug */
@@ -95,6 +102,7 @@ private:
         mech_ang = encoder.readAngleRad();
     };
     void updateMechSpeed();
+    void eso(q24_t mech_speed_meas);
 
     struct{
         q24_t u = Q24_ZERO;
@@ -126,8 +134,16 @@ private:
     volatile q24_t current_loop_cmd = Q24_ZERO;
     volatile q24_t speed_loop_cmd = Q24_ZERO;
     
-    q24_t current_filt_coeff_ = q24(0.25f);
+    q24_t current_filt_coeff_ = q24(0.2f);
     q24_t speed_filt_coeff_   = q24(0.15f);
+    
+    // expected bandwidth: 
+    struct eso_coeff{
+        q24_t l1;
+        q24_t l2;
+    } eso_coeffs = {Q24_ZERO, Q24_ZERO};
+
+    q24_t disturbance = Q24_ZERO;
 
     /* ---- 外环状态 ---- */
     FocLoopMode loop_mode_   = FocLoopMode::Current;

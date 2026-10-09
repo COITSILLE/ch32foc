@@ -250,7 +250,9 @@ constexpr q24_t q24(float x){
 constexpr q24_t q24(int x){
     if(x >= 128) return q24_t::from_raw(INT32_MAX);
     if(x <= -128) return q24_t::from_raw(INT32_MIN);
-    return q24_t::from_raw((int32_t)x << 24);
+    // Shift via unsigned: left-shifting a negative int is UB / rejected in constant
+    // expressions. |x| <= 127 here, so the round-trip cast keeps the exact bits.
+    return q24_t::from_raw(static_cast<int32_t>(static_cast<uint32_t>(x) << 24));
 }
 
 /* ===================== 4. INTERNAL HELPERS ===================== */

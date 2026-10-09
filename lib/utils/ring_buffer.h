@@ -32,7 +32,7 @@ public:
      * @param None.
      * @return Popped item or default value.
      */
-    type pop();
+    type pop(bool* empty = nullptr);
 private:
     type* buffer;
     uint32_t size;

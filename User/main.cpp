@@ -34,7 +34,8 @@ static void tm_tx_frame(void);
 extern "C" void updateEncoder(void);
 static void task_vbus(void);
 static void task_state(void);
-static void task_outer_loop(void);
+extern "C" void task_outer_loop(void);
+static void task_ramp(void);
 
 
 /* ========= Global Variables ========= */
@@ -71,7 +72,7 @@ static volatile bool g_enc_tick_enable = false;
 static bool     g_fault_reported = false;
 
 constexpr q24_t FOC_ADC_SCALE_V = q24(3.3f * (14e3f + 100e3f) / 14e3f);
-constexpr q24_t vbus_calib      = q24(0.04f);
+constexpr q24_t vbus_calib      = q24(-0.01f);
 constexpr q24_t FOC_VBUS_MIN_V  = q24(5.0f);
 
 #define FOC_CALIB_ZERO 1
@@ -83,8 +84,8 @@ const uint32_t FOC_CALIB_ADDR = 0x0800FF80u;
  * FOC_TM_LOOP  ：0=发电流环遥测（网页 foc_monitor.html）；1=发速度/位置环遥测
  *   （网页 foc_loop_monitor.html）。**两者互斥**：通道数/帧宽相同（10 通道 = 44B），
  *   DMA 双缓冲与波特率占用不变，只是 10 个通道的语义与对应网页不同。 */
-#define FOC_LOOP_MODE 0
-#define FOC_TM_LOOP   1
+#define FOC_LOOP_MODE 2
+#define FOC_TM_LOOP   2
 
 #if !FOC_TM_LOOP
 /* 电流环遥测通道索引：Iu Iv Iw | Id Iq | Vd Vq | 角度rad | 预测电角rad | 控制拍计数 */
@@ -176,32 +177,39 @@ int main(void)
 
     inv_set_duty(0x8000, 0x8000, 0x8000);
 
-    constexpr float k = 928.57f;
-    constexpr float k_iq = 3.0f;
-    constexpr float k_id = 2.5f;
-    g_foc.pid_iq.setKp(q24(k_iq));
-    g_foc.pid_iq.setKiDt(q24(k_iq * k * FOC_DT));
+    constexpr float k_current = R_s / L_s;
+    constexpr float kp_iq = 1.05f;
+    constexpr float kp_id = 0.9f;
+    g_foc.pid_iq.setKp(q24(kp_iq));
+    g_foc.pid_iq.setKiDt(q24(kp_iq * k_current * FOC_DT));
     g_foc.pid_iq.setOutputLimit(q24(0.0f));// This will be changed by task_vbus() after vbus is known
     g_foc.pid_iq.setTarget(q24(0.0f));
-    g_foc.pid_id.setKp(q24(k_id));
-    g_foc.pid_id.setKiDt(q24(k_id * k * FOC_DT));
+    g_foc.pid_id.setKp(q24(kp_id));
+    g_foc.pid_id.setKiDt(q24(kp_id * k_current * FOC_DT));
     g_foc.pid_id.setOutputLimit(q24(0.0f));// This will be changed by task_vbus() after vbus is known
     g_foc.pid_id.setTarget(q24(0.0f));
-
-    g_foc.pid_spd.setKp(q24(-0.02f));
-    g_foc.pid_spd.setKiDt(q24(-0.035f / 0.05f) * SPD_DT);
-    g_foc.pid_spd.setOutputLimit(q24(60.0f));
+    
+    constexpr float kp_spd = 2.39e-3f;
+    constexpr float ki_spd = 3.0e-5f;
+    g_foc.pid_spd.setKp(q24(kp_spd));
+    g_foc.pid_spd.setKiDt(q24(ki_spd));
+    g_foc.pid_spd.setOutputLimit(q24(1.60f));
     g_foc.pid_spd.setTarget(q24(0.0f));
-    g_foc.pid_pos.setFactors(10.0f, 0.0f, 0.0f, 5e-3); /* 位置环输出 = 速度给定（rad/s） */
+
+    g_foc.pid_pos.setFactors(10.0f, 0.0f, 0.0f, 5e-3f); 
     g_foc.pid_pos.setTarget(0.0f);
     g_foc.pid_pos.setLimit(60.0f, 0.0f);
     g_foc.setLoopMode((FocLoopMode)FOC_LOOP_MODE);
 
+    g_foc.setEsoCoeffs(0.24, 5.31e-3);
+    g_foc.setCurrentCutoffFreq(800);
+    g_foc.setSpeedFiltCoeff(300);
+
     while (1) {
         task_vbus();     /* 1000ms */
         task_state();    /* 50ms（编码器由控制环 2kHz 节拍驱动） */
-        task_outer_loop();
-        // task_ramp();     /* ~1ms（闭环参考：电流环给 iq；FOC_LOOP_MODE=1/2 给速度/位置） */
+        // task_outer_loop();
+        task_ramp();     /* ~1ms（闭环参考：电流环给 iq；FOC_LOOP_MODE=1/2 给速度/位置） */
     }
 }
 
@@ -261,12 +269,14 @@ static void foc_store_zero_calib(q24_t zero_calib)
     __enable_irq();
 }
 
-static void task_outer_loop(void)
+extern "C" void task_outer_loop(void)
 {
-    NON_BLOCK_DELAY(1);
+    // NON_BLOCK_DELAY(1);
 
     if(CtrlTick_div2()){
+        GPIO_WriteBit(GPIOA, GPIO_Pin_7, Bit_SET);
         g_foc.updatePosLoop();
+        GPIO_WriteBit(GPIOA, GPIO_Pin_7, Bit_RESET);
     }
 
     g_foc.updateSpeedLoop();
@@ -277,6 +287,7 @@ static void task_vbus(void)
     NON_BLOCK_DELAY(5000);
 
     const uint16_t vbus_avg = ADC_GetAverageValue(ADC1);
+    // const uint16_t vbus_avg = ADC_GetConversionValue(ADC1);
     q24_t vbus = q24_t::from_raw((int32_t)vbus_avg << 12);
     vbus = vbus * FOC_ADC_SCALE_V + vbus_calib;
 
@@ -358,9 +369,83 @@ static void task_state(void)
 static constexpr q24_t IQ_SIN_AMP  = q24(0.30f);                        /* 幅度（A） */
 static constexpr q24_t IQ_SIN_STEP = q24(6.283185307179586f / 2000.0f); /* 每 1ms 拍 = 2π/2000 */
 
-/* 每 ~1ms：给出 iq 目标（正弦稳定测试参考） */
+// #define FOC_TAU_MEASURE 1   /* 临时：kt/J + 两段惰行对比（PWM 开 / 关）。删本行 + task_ramp 里 #if 块即恢复 */
+
 static void task_ramp(void)
 {
+#if FOC_TAU_MEASURE
+    static constexpr q24_t TAU_IQ = q24(0.15f);
+    static constexpr uint32_t TAU_TA = 60000u;
+    static const uint32_t s_lt[8] = { 10000u, 20000u, 40000u, 80000u, 160000u, 320000u, 640000u, 1280000u };
+
+    static uint8_t  s_st = 0;
+    static uint8_t  s_g1 = 0, s_g2 = 0, s_nc = 0;
+    static uint32_t s_us0 = 0, s_t1 = 0, s_t2 = 0;
+    static q24_t    s_ang = Q24_ZERO;
+    static float    s_w = 0.0f, s_w1 = 0.0f, s_w2 = 0.0f, s_kj = -1.0f;
+    static float    s_wa[8] = {0.0f}, s_wb[8] = {0.0f};
+
+    NON_BLOCK_DELAY(1);
+    if (s_st >= 5) return;
+
+    const q24_t a_now = g_foc.getMechanAng();
+    q24_t dd = q24_sub_w(a_now, s_ang);
+    s_ang = a_now;
+    if      (dd.val >  Q24_PI.val) dd = q24_sub_w(dd, Q24_TWOPI);
+    else if (dd.val < -Q24_PI.val) dd = q24_add_w(dd, Q24_TWOPI);
+    s_w = dd.cvt2float() * 1000.0f;
+
+    const uint32_t el = (uint32_t)(Systick_getUsTick() - s_us0);
+
+    if (s_st == 0) {
+        g_foc.pid_iq.setTarget(Q24_ZERO);
+        if (g_foc.calibrating) return;
+        s_ang = a_now;
+        s_us0 = (uint32_t)Systick_getUsTick(); s_st = 1;
+    }
+    else if (s_st == 1 || s_st == 3) {
+        g_foc.pid_iq.setTarget(TAU_IQ);
+        if (s_st == 1) {
+            if (!s_g1 && el >= 10000u) { s_w1 = s_w; s_t1 = el; s_g1 = 1; }
+            if (!s_g2 && el >= 40000u) {
+                s_w2 = s_w; s_t2 = el; s_g2 = 1;
+                s_kj = (s_w2 - s_w1) / ((s_t2 - s_t1) * 1e-6f) / TAU_IQ.cvt2float();
+            }
+        }
+        if (el >= TAU_TA) {
+            s_nc = 1;
+            if (s_st == 1) {
+                s_wa[0] = s_w; s_st = 2;
+            } else {
+                s_wb[0] = s_w; s_st = 4;
+                g_foc.pid_iq.setTarget(Q24_ZERO);
+                inv_set_duty(0x8000, 0x8000, 0x8000);
+                TIM_CtrlPWMOutputs(TIM1, DISABLE);
+            }
+            s_us0 = (uint32_t)Systick_getUsTick();
+        }
+    }
+    else if (s_st == 2 || s_st == 4) {
+        g_foc.pid_iq.setTarget(Q24_ZERO);
+        float *p = (s_st == 2) ? s_wa : s_wb;
+        while (s_nc < 8 && el >= s_lt[s_nc]) { p[s_nc] = s_w; ++s_nc; }
+        if (s_nc >= 8) s_st = (s_st == 2) ? 3 : 5;
+    }
+
+    if (s_st >= 5) {
+        g_foc.pid_iq.setTarget(Q24_ZERO);
+        inv_set_duty(0x8000, 0x8000, 0x8000);
+        TIM_CtrlPWMOutputs(TIM1, DISABLE);
+        g_foc.calibrating = true;
+        char b0[16], b1[16], c[8][12], d[8][12];
+        s_ftoa(s_kj, b0, 0);
+        s_ftoa(s_wa[0], b1, 1);
+        for (uint8_t i = 0; i < 8; ++i) { s_ftoa(s_wa[i], c[i], 1); s_ftoa(s_wb[i], d[i], 1); }
+        printf("[TAU] kt/J=%s  w0=%s\r\n", b0, b1);
+        printf("[TAU] A pwm-on  %s %s %s %s %s %s %s %s\r\n", c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]);
+        printf("[TAU] B pwm-off %s %s %s %s %s %s %s %s\r\n", d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7]);
+    }
+#else
     static q24_t s_phase = Q24_ZERO;
 
     NON_BLOCK_DELAY(1);   /* 1ms 是本 task 的下限（NON_BLOCK_DELAY 是 ms 基准） */
@@ -375,6 +460,7 @@ static void task_ramp(void)
     if (s_phase >= Q24_TWOPI) s_phase = s_phase - Q24_TWOPI;
 
     g_foc.pid_iq.setTarget(IQ_SIN_AMP * q_sin(s_phase));
+#endif
 }
 #else
 /* ===== 外环参考发生器（速度环/位置环 稳定测试）=====
@@ -382,8 +468,14 @@ static void task_ramp(void)
  *   速度环：幅度 ±SPD_REF_AMP；位置环：绕"进入时连续机械角"摆动 ±POS_REF_AMP。
  * 校准期清相位/基准：校准结束后从过零点起振，且位置环基准 = 校准后的实际角度。 */
 static constexpr q24_t REF_STEP    = q24(6.283185307179586f / 2000.0f); /* 每 1ms 拍 = 2π/2000 */
-static constexpr q24_t SPD_REF_AMP = q24(60.0f);                        /* 速度给定幅值（rad/s，≈573rpm） */
+static constexpr q24_t SPD_REF_AMP = q24(30.0f);                        /* 速度给定幅值（rad/s，≈573rpm） */
 static constexpr q24_t POS_REF_AMP = q24(1.5707963268f);                /* 位置给定幅值（rad，= 90°） */
+
+/* 速度环阶跃序列（rad/s）：0.5 → 1 → 1.5 → -1.5 → 1 → 0.5 → 0，每档保持 SPD_HOLD_MS */
+static constexpr q24_t    SPD_SEQ[7]  = { q24(5), q24(10), q24(15), q24(-15),
+                                          q24(-10), q24(-5), q24(0) };
+static constexpr uint8_t  SPD_SEQ_N   = 7u;
+static constexpr uint32_t SPD_HOLD_MS = 500u;
 
 /* 每 ~1ms：给出外环目标（速度环给 pid_sp，位置环给 pid_pos） */
 static void task_ramp(void)
@@ -391,18 +483,21 @@ static void task_ramp(void)
     static q24_t s_phase = Q24_ZERO;
     static q24_t s_ang0  = Q24_ZERO;
     static bool  s_base  = false;
+    static uint32_t s_ms = 0;
+    static uint8_t  s_idx = 0;
 
     NON_BLOCK_DELAY(1);
 
     if (g_foc.calibrating) {       /* 校准期输出 0 并复位相位/位置基准 */
         s_phase = Q24_ZERO; s_base = false;
-        g_foc.pid_sp.setTarget(Q24_ZERO);
-        g_foc.pid_pos.setTarget(Q24_ZERO);
+        g_foc.pid_spd.setTarget(Q24_ZERO);
+        g_foc.pid_pos.setTarget(0);
         return;
     }
     if (!s_base) {                 /* 位置环基准：校准后第一次进本 task 时的连续机械角 */
         s_base = true;
         s_ang0 = g_foc.getPosFb();
+        s_ms   = Systick_getMsTick(); s_idx = 0;
     }
 
     s_phase = s_phase + REF_STEP;
@@ -410,38 +505,22 @@ static void task_ramp(void)
 
 #if (FOC_LOOP_MODE == 2)
     // g_foc.pid_pos.setTarget(q24_add_w(s_ang0, POS_REF_AMP * q_sin(s_phase)));
-    g_foc.pid_pos.setTarget(q24(0));
+    g_foc.pid_pos.setTarget(0.0f);
 #else
-    g_foc.pid_sp.setTarget(SPD_REF_AMP * q_sin(s_phase));
+// #define SPD_SIN_REF 1   /* 临时：速度给定换成正弦（±SPD_REF_AMP，周期 2s）。删本行即回到阶跃序列 */
+#ifdef SPD_SIN_REF
+    g_foc.pid_spd.setTarget(SPD_REF_AMP * q_sin(s_phase));
+#else
+    const uint32_t now = Systick_getMsTick();
+    if (((uint32_t)(now - s_ms) >= SPD_HOLD_MS) && (s_idx + 1u < SPD_SEQ_N)) {
+        s_ms = now;
+        ++s_idx;
+    }
+    g_foc.pid_spd.setTarget(SPD_SEQ[s_idx]);
+#endif
 #endif
 }
 #endif  /* 参考发生器：电流环 / 外环 二选一 */
-
-#if 0   /* ==== 阶梯斜坡（备查：需要阶跃响应测试时把上面正弦换回这段）====
-         * 用预处理器的 #if 0 包，而不是块注释：本段内部自带块注释，
-         * 外层再套一层块注释会在内层的结束标记处提前闭合。 */
-static constexpr q24_t   IQ_RAMP_STEP   = q24(0.05f);   // 每档增量（A）
-static constexpr q24_t   IQ_RAMP_TARGET = q24(0.50f);   // 终值（A）
-static constexpr uint8_t IQ_RAMP_TICKS  = 10u;          // 每档保持 200ms × 10 = 2s
-
-static void task_ramp(void)
-{
-    static uint8_t s_div = 0;
-    static q24_t   s_iq  = Q24_ZERO;
-
-    NON_BLOCK_DELAY(200);
-
-    if (g_foc.calibrating) { s_div = 0; return; }
-
-    if (s_iq >= IQ_RAMP_TARGET) return;
-    if (++s_div < IQ_RAMP_TICKS) return;
-    s_div = 0;
-
-    s_iq = s_iq + IQ_RAMP_STEP;
-    if (s_iq > IQ_RAMP_TARGET) s_iq = IQ_RAMP_TARGET;
-    g_foc.pid_iq.setTarget(s_iq);
-}
-#endif  /* ==== 阶梯斜坡 + 临时诊断（备查段）结束 ==== */
 
 /* 帧时间戳 = 控制拍计数（定义见文件上方 g_tick_count）。 */
 static inline uint32_t tm_stamp(void)
