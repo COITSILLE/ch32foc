@@ -18,7 +18,7 @@ static constexpr q24_t K_L   = q24(L_s / FOC_DT);
 static constexpr q24_t K_LAMBDA = q24(Lambda / FOC_DT);
 
 static constexpr uint8_t SPD_DECIM = 10;                        /* 10kHz ÷10 = 1kHz */
-static constexpr q24_t   SPD_DT    = q24(SPD_DECIM * FOC_DT);   /* 1ms */
+static constexpr float   SPD_DT    = SPD_DECIM * FOC_DT;   /* 1ms */
 
 static constexpr q24_t K_B_div_J = q24(B / J * FOC_DT);
 static constexpr q24_t K_Kt_div_J = q24(K_t / J * FOC_DT);
@@ -51,16 +51,20 @@ public:
     void setLoopMode(FocLoopMode mode);
     FocLoopMode getLoopMode() const { return loop_mode_; }
 
-    void setCurrentCutoffFreq(uint32_t freq) {
-        current_filt_coeff_ = q24(1.0f - 1.0f / (1.0f + 2.0f * M_PI * freq * FOC_DT)); 
+    void setCurrentCutoffFreq(float cutoff_freq) {
+        current_filt_coeff_ = q24(1.0f - 1.0f / (1.0f + 2.0f * M_PI * cutoff_freq * FOC_DT));
+        if (current_filt_coeff_ < 0) current_filt_coeff_ = Q24_ZERO;
+        else if (current_filt_coeff_ > 1) current_filt_coeff_ = Q24_ONE; 
     }
-    void setSpeedFiltCoeff(uint32_t freq) {
-        speed_filt_coeff_ = q24(1.0f - 1.0f / (1.0f + 2.0f * M_PI * freq * FOC_DT));
+    void setSpeedFiltCoeff(float cutoff_freq) {
+        speed_filt_coeff_ = q24(1.0f - 1.0f / (1.0f + 2.0f * M_PI * cutoff_freq * FOC_DT));
+        if (speed_filt_coeff_ < 0) speed_filt_coeff_ = Q24_ZERO;
+        else if (speed_filt_coeff_ > 1) speed_filt_coeff_ = Q24_ONE;
     }
 
     void setEsoCoeffs(float l1, float l2) {
-        eso_coeffs.l1 = q24(l1);
-        eso_coeffs.l2 = q24(l2);
+        eso_coeffs.l1 = q24(l1 * FOC_DT);
+        eso_coeffs.l2 = q24(l2 * FOC_DT);
     }
 
     /* current loop debug */

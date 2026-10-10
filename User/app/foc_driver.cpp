@@ -1,5 +1,6 @@
 #include "foc_driver.h"
 #include "alg_pid.h"
+#include <cstdint>
 
 FocDriver::FocDriver(MT6701_SSI& enc)
  : encoder(enc)
@@ -8,7 +9,7 @@ FocDriver::FocDriver(MT6701_SSI& enc)
  , pid_spd()
  , pid_pos()
 {
-    pid_pos.setDt((float)SPD_DT * 2.0f);
+    pid_pos.setDt(SPD_DT * 2.0f);
     pid_pos.setDiffMode(DiffMode::DisableDiff);
 }
 
@@ -84,6 +85,7 @@ void FocDriver::updateCurrLoop(){
 
 /**
  * @brief this function updates mechanical angle difference and mechanical speed.
+ * @note this means the speed will take more noise.
  */
 void FocDriver::updateMechSpeed(){
     if (!mech_spd_init_) { 
@@ -99,8 +101,9 @@ void FocDriver::updateMechSpeed(){
     this->mech_ang_diff = q24_add_w(this->mech_ang_diff,
                             q24_mul_w(q24_sub_w(mech_ang_diff_raw, this->mech_ang_diff), speed_filt_coeff_));
 
-    // this->mech_speed = mech_ang_diff * FOC_DT_INV;
+    // this->mech_speed = mech_ang_diff / q24(FOC_DT);
     eso(this->mech_ang_diff / q24(FOC_DT));
+    // q24_t mech_speed_meas = q24_t::from_raw((int32_t)((int64_t)mech_ang_diff.val * 625 << 4));
 }
 /**
  * x_1_hat = w, x_2_hat = d_hat
@@ -110,8 +113,12 @@ void FocDriver::updateMechSpeed(){
  * dt is scaled to the right side so that q24_t can fit in
 */
 void FocDriver::eso(q24_t mech_speed_meas){
-    q24_t d_mech_speed = K_Kt_div_J * (i_q_fb_filt_ + disturbance) - K_B_div_J * mech_speed + eso_coeffs.l1 * (mech_speed_meas - mech_speed);
-    q24_t d_distur = eso_coeffs.l2 * (mech_speed_meas - mech_speed);
+    q24_t err = q24_sub_w(mech_speed_meas, mech_speed);
+    q24_t d_mech_speed = q24_add_w(
+            q24_sub_w(q24_mul_w(K_Kt_div_J, q24_add_w(i_q_fb_filt_, disturbance)),
+                    q24_mul_w(K_B_div_J, mech_speed)),
+            q24_mul_w(eso_coeffs.l1, err));
+    q24_t d_distur = q24_mul_w(eso_coeffs.l2, err);
 
     mech_speed = q24_add_w(mech_speed, d_mech_speed);
     disturbance = q24_add_w(disturbance, d_distur);

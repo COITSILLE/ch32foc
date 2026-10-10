@@ -84,7 +84,7 @@ const uint32_t FOC_CALIB_ADDR = 0x0800FF80u;
  * FOC_TM_LOOP  ：0=发电流环遥测（网页 foc_monitor.html）；1=发速度/位置环遥测
  *   （网页 foc_loop_monitor.html）。**两者互斥**：通道数/帧宽相同（10 通道 = 44B），
  *   DMA 双缓冲与波特率占用不变，只是 10 个通道的语义与对应网页不同。 */
-#define FOC_LOOP_MODE 2
+#define FOC_LOOP_MODE 1
 #define FOC_TM_LOOP   2
 
 #if !FOC_TM_LOOP
@@ -178,8 +178,9 @@ int main(void)
     inv_set_duty(0x8000, 0x8000, 0x8000);
 
     constexpr float k_current = R_s / L_s;
-    constexpr float kp_iq = 1.05f;
-    constexpr float kp_id = 0.9f;
+    constexpr float f_exp_i = 400.0f;
+    constexpr float kp_iq = M_TWOPI * L_s * f_exp_i;;
+    constexpr float kp_id = kp_iq * 0.8f;
     g_foc.pid_iq.setKp(q24(kp_iq));
     g_foc.pid_iq.setKiDt(q24(kp_iq * k_current * FOC_DT));
     g_foc.pid_iq.setOutputLimit(q24(0.0f));// This will be changed by task_vbus() after vbus is known
@@ -189,10 +190,13 @@ int main(void)
     g_foc.pid_id.setOutputLimit(q24(0.0f));// This will be changed by task_vbus() after vbus is known
     g_foc.pid_id.setTarget(q24(0.0f));
     
-    constexpr float kp_spd = 2.39e-3f;
-    constexpr float ki_spd = 3.0e-5f;
+    constexpr float f_exp_spd = 10.0f;
+    constexpr float wn_exp_spd = M_TWOPI * f_exp_spd;
+    constexpr float zeta_exp_spd = 0.8f;
+    constexpr float kp_spd = 2.0f * zeta_exp_spd * wn_exp_spd * J / K_t;
+    constexpr float ki_spd = wn_exp_spd * wn_exp_spd * J / K_t;
     g_foc.pid_spd.setKp(q24(kp_spd));
-    g_foc.pid_spd.setKiDt(q24(ki_spd));
+    g_foc.pid_spd.setKiDt(q24(ki_spd * SPD_DT));
     g_foc.pid_spd.setOutputLimit(q24(1.60f));
     g_foc.pid_spd.setTarget(q24(0.0f));
 
@@ -200,16 +204,21 @@ int main(void)
     g_foc.pid_pos.setTarget(0.0f);
     g_foc.pid_pos.setLimit(60.0f, 0.0f);
     g_foc.setLoopMode((FocLoopMode)FOC_LOOP_MODE);
+    
+    constexpr float f_exp_eso = 200.0f;
+    constexpr float wn_exp_eso = M_TWOPI * f_exp_eso;
+    constexpr float eso_l1 = 2 * wn_exp_eso; //appro
+    constexpr float eso_l2 = wn_exp_eso * wn_exp_eso * J / K_t;
+    g_foc.setEsoCoeffs(eso_l1, eso_l2);
 
-    g_foc.setEsoCoeffs(0.24, 5.31e-3);
-    g_foc.setCurrentCutoffFreq(800);
+    g_foc.setCurrentCutoffFreq(2000);
     g_foc.setSpeedFiltCoeff(300);
 
     while (1) {
         task_vbus();     /* 1000ms */
         task_state();    /* 50ms（编码器由控制环 2kHz 节拍驱动） */
         // task_outer_loop();
-        task_ramp();     /* ~1ms（闭环参考：电流环给 iq；FOC_LOOP_MODE=1/2 给速度/位置） */
+        // task_ramp();     /* ~1ms（闭环参考：电流环给 iq；FOC_LOOP_MODE=1/2 给速度/位置） */
     }
 }
 
@@ -507,7 +516,7 @@ static void task_ramp(void)
     // g_foc.pid_pos.setTarget(q24_add_w(s_ang0, POS_REF_AMP * q_sin(s_phase)));
     g_foc.pid_pos.setTarget(0.0f);
 #else
-// #define SPD_SIN_REF 1   /* 临时：速度给定换成正弦（±SPD_REF_AMP，周期 2s）。删本行即回到阶跃序列 */
+#define SPD_SIN_REF 1   /* 临时：速度给定换成正弦（±SPD_REF_AMP，周期 2s）。删本行即回到阶跃序列 */
 #ifdef SPD_SIN_REF
     g_foc.pid_spd.setTarget(SPD_REF_AMP * q_sin(s_phase));
 #else
