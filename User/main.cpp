@@ -81,13 +81,13 @@ const uint32_t FOC_CALIB_ADDR = 0x0800FF80u;
 /* ===== 运行模式选择（编译期宏，改完重新编译烧写）=====
  * FOC_LOOP_MODE：0=电流环（iq 给定直接给 pid_iq，原行为）；1=速度环；2=位置环（级联速度环）。
  *   参数见 foc_driver.h 的 SPEED_ / POS_ 常量与 FocDriver::setLoopMode()。
- * FOC_TM_LOOP  ：0=发电流环遥测（网页 foc_monitor.html）；1=发速度/位置环遥测
- *   （网页 foc_loop_monitor.html）。**两者互斥**：通道数/帧宽相同（10 通道 = 44B），
- *   DMA 双缓冲与波特率占用不变，只是 10 个通道的语义与对应网页不同。 */
+ * FOC_TM_LOOP  ：0=发电流环遥测（网页 foc_monitor.html，10 通道 = 44B）；1=发速度/位置环遥测
+ *   （网页 foc_loop_monitor.html，14 通道 = 60B）。**两者互斥**：DMA 双缓冲不变，
+ *   只是通道数、帧宽、各通道语义与对应网页不同。 */
 #define FOC_LOOP_MODE 1
-#define FOC_TM_LOOP   2
+#define FOC_TM_LOOP   1
 
-#if !FOC_TM_LOOP
+#if FOC_TM_LOOP == 0
 /* 电流环遥测通道索引：Iu Iv Iw | Id Iq | Vd Vq | 角度rad | 预测电角rad | 控制拍计数 */
 enum {
     TM_IU = 0, TM_IV, TM_IW,       /* 相电流（A） */
@@ -97,22 +97,26 @@ enum {
     TM_TSTAMP,                     /* 控制拍计数（32 位；见 g_tick_count 注释） */
     TM_NCH
 };
-#else
+#elif FOC_TM_LOOP == 1
 enum {
     TM_SREF = 0, TM_SFB,           /* 速度给定/反馈（rad/s，机械） */
     TM_PREF,     TM_PFB,           /* 位置给定/反馈（rad，连续机械角） */
     TM_IQR,      TM_IQ,  TM_ID,    /* iq 给定/反馈、id 反馈（A） */
     TM_VD,       TM_VQ,            /* d 轴/q 轴电压参考（V，含解耦项与限幅后的值） */
-    TM_ANG,      TM_ELEC,          /* 转子机械角（rad，0~2π）/ 电角度（rad） */
+    TM_ANG,                        /* 转子机械角（rad，0~2π） */
+    TM_ABF_ANG,
+    TM_ESO_SPD,  TM_ESO_DIST,
     TM_TSTAMP,                     /* 控制拍计数（32 位；见 g_tick_count 注释） */
     TM_NCH
 };
+#else
+#error "FOC_TM_LOOP undefined"
 #endif
 /* 帧长：TM_NCH 个数据字 + 1 个尾字。
  * ⚠️ 改 2kHz 抽取值(CTRL_DECIM_2KHZ)或帧宽要同步看带宽：
  *    帧长(TM_NCH*4+4) × 速率 ≤ 波特率/10，留 ≥20% 余量；且发送时长必须 < 1 帧周期
  *    （tm_dma_kick 每帧会 DISABLE 通道，会截断在发的帧）。 */
-static constexpr uint16_t TM_FRAME_BYTES = TM_NCH * 4 + 4;   /* 电流环 44 / 速度位置环 52 */
+static constexpr uint16_t TM_FRAME_BYTES = TM_NCH * 4 + 4;   /* 电流环 44 / 速度位置环 60 */
 
 /* ===== 2kHz DMA 遥测发送（开环/闭环共用；节拍来源见 ctrl_tick_2khz）===== */
 static uint32_t s_txbuf[2][TM_NCH + 1];   /* 每槽 = TM_NCH 数据 + 1 尾字，4 对齐 */
@@ -211,6 +215,13 @@ int main(void)
     constexpr float eso_l2 = wn_exp_eso * wn_exp_eso * J / K_t;
     g_foc.setEsoCoeffs(eso_l1, eso_l2);
 
+    constexpr float f_exp_abf = 100.0f;
+    constexpr float wn_exp_abf = M_TWOPI * f_exp_abf;
+    constexpr float zeta_exp_abf = 0.8f;
+    constexpr float abf_a = 2 * wn_exp_abf * zeta_exp_abf;
+    constexpr float abf_b = wn_exp_abf * wn_exp_abf;
+    g_foc.setSpeedABFiltCoeff(abf_a, abf_b);
+
     g_foc.setCurrentCutoffFreq(2000);
     g_foc.setSpeedFiltCoeff(300);
 
@@ -218,7 +229,7 @@ int main(void)
         task_vbus();     /* 1000ms */
         task_state();    /* 50ms（编码器由控制环 2kHz 节拍驱动） */
         // task_outer_loop();
-        // task_ramp();     /* ~1ms（闭环参考：电流环给 iq；FOC_LOOP_MODE=1/2 给速度/位置） */
+        task_ramp();     /* ~1ms（闭环参考：电流环给 iq；FOC_LOOP_MODE=1/2 给速度/位置） */
     }
 }
 
@@ -516,7 +527,7 @@ static void task_ramp(void)
     // g_foc.pid_pos.setTarget(q24_add_w(s_ang0, POS_REF_AMP * q_sin(s_phase)));
     g_foc.pid_pos.setTarget(0.0f);
 #else
-#define SPD_SIN_REF 1   /* 临时：速度给定换成正弦（±SPD_REF_AMP，周期 2s）。删本行即回到阶跃序列 */
+// #define SPD_SIN_REF 1   /* 临时：速度给定换成正弦（±SPD_REF_AMP，周期 2s）。删本行即回到阶跃序列 */
 #ifdef SPD_SIN_REF
     g_foc.pid_spd.setTarget(SPD_REF_AMP * q_sin(s_phase));
 #else
@@ -577,7 +588,9 @@ static void tm_tx_frame(void)
     d[TM_VD]   = (uint32_t)g_foc.getVdRef().val;
     d[TM_VQ]   = (uint32_t)g_foc.getVqRef().val;
     d[TM_ANG]  = (uint32_t)g_foc.getMechanAng().val;
-    d[TM_ELEC] = (uint32_t)g_foc.getElecAng().val;
+    d[TM_ABF_ANG]  = (uint32_t)g_foc.getABFiltState1().val;
+    d[TM_ESO_SPD]  = (uint32_t)g_foc.getEsoState1().val;
+    d[TM_ESO_DIST] = (uint32_t)g_foc.getEsoState2().val;
 #endif
     d[TM_TSTAMP] = tm_stamp();
     d[TM_NCH]  = 0x7F800000u;           /* JustFloat 尾 00 00 80 7F */

@@ -91,6 +91,8 @@ void FocDriver::updateMechSpeed(){
     if (!mech_spd_init_) { 
         mech_spd_init_ = true;
         mech_ang_last_  = mech_ang;
+        eso_states.mech_spd_hat = mech_speed;
+        theta_hat = mech_ang;
         return;
     }
 
@@ -101,10 +103,29 @@ void FocDriver::updateMechSpeed(){
     this->mech_ang_diff = q24_add_w(this->mech_ang_diff,
                             q24_mul_w(q24_sub_w(mech_ang_diff_raw, this->mech_ang_diff), speed_filt_coeff_));
 
-    // this->mech_speed = mech_ang_diff / q24(FOC_DT);
-    eso(this->mech_ang_diff / q24(FOC_DT));
+    q24_t mech_speed_ff = mech_ang_diff / q24(FOC_DT);
+    eso(mech_speed_ff);
+    observeMechSpeed();
+    // eso(this->mech_ang_diff / q24(FOC_DT));
+    
     // q24_t mech_speed_meas = q24_t::from_raw((int32_t)((int64_t)mech_ang_diff.val * 625 << 4));
 }
+
+void FocDriver::observeMechSpeed(){
+    q24_t err = q24_sub_w(mech_ang, theta_hat);
+    if      (err >  Q24_PI) err = q24_sub_w(err, Q24_TWOPI);
+    else if (err < -Q24_PI) err = q24_add_w(err, Q24_TWOPI);
+    q24_t err_scaled = q24_t::from_raw(err.val * 32);
+
+    q24_t d_theta_hat = mech_speed * FOC_DT + abfilt_coeffs.a * err;
+    q24_t d_omega_hat = abfilt_coeffs.b * err_scaled;
+    theta_hat = q24_add_w(theta_hat, d_theta_hat);
+    if      (theta_hat > Q24_TWOPI) theta_hat = q24_sub_w(theta_hat, Q24_TWOPI);
+    else if (theta_hat < Q24_ZERO) theta_hat = q24_add_w(theta_hat, Q24_TWOPI);
+    mech_speed = q24_add_w(mech_speed, d_omega_hat);
+}
+
+
 /**
  * x_1_hat = w, x_2_hat = d_hat
  * J/Kt * dw/dt = -B/Kt * w + iq + d, let J' = J/Kt, B' = B/Kt, then
@@ -113,15 +134,15 @@ void FocDriver::updateMechSpeed(){
  * dt is scaled to the right side so that q24_t can fit in
 */
 void FocDriver::eso(q24_t mech_speed_meas){
-    q24_t err = q24_sub_w(mech_speed_meas, mech_speed);
+    q24_t err = q24_sub_w(mech_speed_meas, eso_states.mech_spd_hat);
     q24_t d_mech_speed = q24_add_w(
-            q24_sub_w(q24_mul_w(K_Kt_div_J, q24_add_w(i_q_fb_filt_, disturbance)),
-                    q24_mul_w(K_B_div_J, mech_speed)),
+            q24_sub_w(q24_mul_w(K_Kt_div_J, q24_add_w(i_q_fb_filt_, eso_states.disturb_hat)),
+                    q24_mul_w(K_B_div_J, eso_states.mech_spd_hat)),
             q24_mul_w(eso_coeffs.l1, err));
     q24_t d_distur = q24_mul_w(eso_coeffs.l2, err);
 
-    mech_speed = q24_add_w(mech_speed, d_mech_speed);
-    disturbance = q24_add_w(disturbance, d_distur);
+    eso_states.mech_spd_hat = q24_add_w(eso_states.mech_spd_hat, d_mech_speed);
+    eso_states.disturb_hat = q24_add_w(eso_states.disturb_hat, d_distur);
 }
 
 void FocDriver::updateSpeedLoop(){
@@ -130,7 +151,7 @@ void FocDriver::updateSpeedLoop(){
     if (loop_mode_ == FocLoopMode::Pos){
         pid_spd.setTarget(speed_loop_cmd);
     }
-    q24_t current_loop_cmd_raw = pid_spd.getOutput(mech_speed) - disturbance;
+    q24_t current_loop_cmd_raw = pid_spd.getOutput(mech_speed) - eso_states.disturb_hat;
     pid_spd.clamp(&current_loop_cmd_raw);
     this->current_loop_cmd = current_loop_cmd_raw;
 }

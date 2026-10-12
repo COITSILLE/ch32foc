@@ -67,6 +67,11 @@ public:
         eso_coeffs.l2 = q24(l2 * FOC_DT);
     }
 
+    void setSpeedABFiltCoeff(float a, float b) {
+        abfilt_coeffs.a = q24(a * FOC_DT);
+        abfilt_coeffs.b = q24(b * FOC_DT / 32.0f);
+    }
+
     /* current loop debug */
     q24_t getIu() const { return current.u; }
     q24_t getIv() const { return current.v; }
@@ -77,6 +82,12 @@ public:
     q24_t getVqRef() const { return v_q_ref_; }
     q24_t getCurrentCalibU() const { return current_calib.u; }
     q24_t getCurrentCalibV() const { return current_calib.v; }
+
+    q24_t getABFiltState1() const { return theta_hat; }
+    q24_t getABFiltState2() const { return mech_speed; }
+
+    q24_t getEsoState1() const { return eso_states.mech_spd_hat; }
+    q24_t getEsoState2() const { return eso_states.disturb_hat; }
 
     /* outer loop debug */
     q24_t getSpeedRef() const { return pid_spd.getTarget(); }
@@ -99,13 +110,14 @@ private:
     q24_t mech_ang = Q24_ZERO;
     q24_t elec_ang = Q24_ZERO;
     q24_t elec_ang_last = Q24_ZERO;
-    q24_t mech_ang_diff = Q24_ZERO  ;
+    q24_t mech_ang_diff = Q24_ZERO;
     q24_t mech_speed = Q24_ZERO;
 
     inline void readMechanAngFromEnc() { 
         mech_ang = encoder.readAngleRad();
     };
     void updateMechSpeed();
+    void observeMechSpeed();
     void eso(q24_t mech_speed_meas);
 
     struct{
@@ -141,13 +153,21 @@ private:
     q24_t current_filt_coeff_ = q24(0.2f);
     q24_t speed_filt_coeff_   = q24(0.15f);
     
+    q24_t theta_hat = Q24_ZERO;
+    struct abfilt_coeff{
+        q24_t a;
+        q24_t b;
+    } abfilt_coeffs = {Q24_ZERO, Q24_ZERO};
     // expected bandwidth: 
     struct eso_coeff{
         q24_t l1;
         q24_t l2;
     } eso_coeffs = {Q24_ZERO, Q24_ZERO};
 
-    q24_t disturbance = Q24_ZERO;
+    struct eso_state{
+        q24_t mech_spd_hat;
+        q24_t disturb_hat;
+    } eso_states = {Q24_ZERO, Q24_ZERO};
 
     /* ---- 外环状态 ---- */
     FocLoopMode loop_mode_   = FocLoopMode::Current;
