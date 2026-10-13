@@ -20,6 +20,8 @@ static constexpr q24_t K_LAMBDA = q24(Lambda / FOC_DT);
 static constexpr uint8_t SPD_DECIM = 10;                        /* 10kHz ÷10 = 1kHz */
 static constexpr float   SPD_DT    = SPD_DECIM * FOC_DT;   /* 1ms */
 
+static constexpr float   OBS_DT = FOC_DT;
+
 static constexpr q24_t K_B_div_J = q24(B / J * FOC_DT);
 static constexpr q24_t K_Kt_div_J = q24(K_t / J * FOC_DT);
 
@@ -68,8 +70,14 @@ public:
     }
 
     void setSpeedABFiltCoeff(float a, float b) {
-        abfilt_coeffs.a = q24(a * FOC_DT);
-        abfilt_coeffs.b = q24(b * FOC_DT / 32.0f);
+        abfilt_coeffs.a = q24(a * OBS_DT);
+        abfilt_coeffs.b = q24(b * OBS_DT / 32.0f);
+    }
+
+    void setDisturbFiltCoeff(float cutoff_freq) {
+        disturb_filt_coeff_ = q24(1.0f - 1.0f / (1.0f + 2.0f * M_PI * cutoff_freq * FOC_DT));
+        if (disturb_filt_coeff_ < 0) current_filt_coeff_ = Q24_ZERO;
+        else if (disturb_filt_coeff_ > 1) current_filt_coeff_ = Q24_ONE; 
     }
 
     /* current loop debug */
@@ -93,7 +101,10 @@ public:
     q24_t getSpeedRef() const { return pid_spd.getTarget(); }
     q24_t getSpeedFb()  const { return mech_speed; }
     q24_t getPosRef()   const { return q24(pid_pos.getTarget()); }
-    q24_t getPosFb()    const { return mech_ang_cont_; }
+    q24_t getPosFb()    const {
+        if(loop_mode_ == FocLoopMode::Pos) return mech_ang_cont_;
+        else return mech_ang; 
+    }
     q24_t getIqRef()    const { return pid_iq.getTarget(); }
 
     volatile bool calibrating = false;
@@ -102,22 +113,26 @@ public:
     void updateSpeedLoop();
     void updatePosLoop();
 
-
+    void observeMechSpeed();
+    void observeMechSpeed2();
 private:
     MT6701_SSI& encoder;
     q24_t vbus = Q24_ZERO;
     q24_t inv_vbus = Q24_MAX;
     q24_t mech_ang = Q24_ZERO;
+    int32_t turns = 0;
     q24_t elec_ang = Q24_ZERO;
     q24_t elec_ang_last = Q24_ZERO;
     q24_t mech_ang_diff = Q24_ZERO;
     q24_t mech_speed = Q24_ZERO;
+    q24_t disturbance = Q24_ZERO;
 
     inline void readMechanAngFromEnc() { 
         mech_ang = encoder.readAngleRad();
+        turns = encoder.readAngleTurns();
     };
     void updateMechSpeed();
-    void observeMechSpeed();
+    
     void eso(q24_t mech_speed_meas);
 
     struct{
@@ -152,6 +167,7 @@ private:
     
     q24_t current_filt_coeff_ = q24(0.2f);
     q24_t speed_filt_coeff_   = q24(0.15f);
+    q24_t disturb_filt_coeff_ = q24(0.5f);
     
     q24_t theta_hat = Q24_ZERO;
     struct abfilt_coeff{
