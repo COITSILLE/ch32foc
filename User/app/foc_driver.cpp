@@ -103,13 +103,9 @@ void FocDriver::updateMechSpeed(){
     this->mech_ang_diff = q24_add_w(this->mech_ang_diff,
                             q24_mul_w(q24_sub_w(mech_ang_diff_raw, this->mech_ang_diff), speed_filt_coeff_));
 
-    q24_t mech_speed_ff = mech_ang_diff / q24(FOC_DT);
-    eso(mech_speed_ff);
+    q24_t mech_speed_ff = mech_ang_diff / SPD_DT_DIV;
+    observeDisturb(mech_speed_ff);
     observeMechSpeed();
-    // mech_speed = mech_ang_diff / q24(FOC_DT);
-    // eso(this->mech_ang_diff / q24(FOC_DT));
-    
-    // q24_t mech_speed_meas = q24_t::from_raw((int32_t)((int64_t)mech_ang_diff.val * 625 << 4));
 }
 
 void FocDriver::observeMechSpeed(){
@@ -118,16 +114,12 @@ void FocDriver::observeMechSpeed(){
     else if (err < -Q24_PI) err = q24_add_w(err, Q24_TWOPI);
     q24_t err_scaled = q24_t::from_raw(err.val * 32);
 
-    q24_t d_theta_hat = mech_speed * OBS_DT + abfilt_coeffs.a * err;
-    q24_t d_omega_hat = abfilt_coeffs.b * err_scaled;
+    q24_t d_theta_hat = q24_add_w(q24_mul_w(mech_speed, SPD_OBS_DT_Q), q24_mul_w(abfilt_coeffs.a, err));
+    q24_t d_omega_hat = q24_mul_w(abfilt_coeffs.b, err_scaled);
     theta_hat = q24_add_w(theta_hat, d_theta_hat);
     if      (theta_hat > Q24_TWOPI) theta_hat = q24_sub_w(theta_hat, Q24_TWOPI);
     else if (theta_hat < Q24_ZERO) theta_hat = q24_add_w(theta_hat, Q24_TWOPI);
     mech_speed = q24_add_w(mech_speed, d_omega_hat);
-}
-
-void FocDriver::observeMechSpeed2(){
-    mech_speed = mech_ang_diff / q24(OBS_DT);
 }
 
 
@@ -138,7 +130,7 @@ void FocDriver::observeMechSpeed2(){
  * assume dd/dt = 0.
  * dt is scaled to the right side so that q24_t can fit in
 */
-void FocDriver::eso(q24_t mech_speed_meas){
+void FocDriver::observeDisturb(q24_t mech_speed_meas){
     q24_t err = q24_sub_w(mech_speed_meas, eso_states.mech_spd_hat);
     q24_t d_mech_speed = q24_add_w(
             q24_sub_w(q24_mul_w(K_Kt_div_J, q24_add_w(i_q_fb_filt_, eso_states.disturb_hat)),
@@ -171,6 +163,14 @@ void FocDriver::updatePosLoop(){
     if (calibrating) return;
     if (loop_mode_ != FocLoopMode::Pos) return;
 
+    float pos_fb = getContMechAng();
+    //for debug
+    this->mech_ang_cont_ = q24(pos_fb);
+
+    this->speed_loop_cmd = q24(pid_pos.getOutput(pos_fb) / SPD_UNIT);
+}
+
+float FocDriver::getContMechAng(){
     uint32_t m = __get_MSTATUS();
     __disable_irq();
     asm volatile ("" ::: "memory");
@@ -178,11 +178,8 @@ void FocDriver::updatePosLoop(){
     q24_t mech_ang_copy = this->mech_ang;
     __set_MSTATUS(m);
 
-    float pos_fb = (float)turns_copy * M_TWOPI + mech_ang_copy.cvt2float();
-    //for debug
-    this->mech_ang_cont_ = q24(pos_fb);
-
-    this->speed_loop_cmd = q24(pid_pos.getOutput(pos_fb));
+    float mech_ang_cont = (float)turns_copy * M_TWOPI + mech_ang_copy.cvt2float();
+    return mech_ang_cont;
 }
 
 void FocDriver::setLoopMode(FocLoopMode mode){

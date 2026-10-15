@@ -45,6 +45,11 @@ private:
 public:
     PID();
     void setFactors(T kp, T ki = T(0.0f), T kd = T(0.0f), T kfv = T(0.0f), T kfa = T(0.0f));
+    void setKp(T kp) { this->kp = kp; }
+    void setKi(T ki) { this->ki = ki; }
+    void setKd(T kd) { this->kd = kd; }
+    void setKfv(T kfv) { this->kv_ff_ = kfv; }
+    void setKfa(T kfa) { this->ka_ff_ = kfa; }
     void setLimit(T output_limit, T ki_limit);
     void setLimit(T max_output, T min_output, T ki_limit);
     void setDt(T dt);

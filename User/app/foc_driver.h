@@ -22,8 +22,14 @@ static constexpr float   SPD_DT    = SPD_DECIM * FOC_DT;   /* 1ms */
 
 static constexpr float   OBS_DT = FOC_DT;
 
+/* Speed scaling: internal q24 speed = w[rad/s] / SPD_UNIT, full scale 128*SPD_UNIT = +-2048 rad/s.*/
+static constexpr float   SPD_UNIT       = 16.0f;
+static constexpr q24_t   INV_SPD_UNIT_Q = q24(1.0f / SPD_UNIT);
+static constexpr q24_t   SPD_DT_DIV     = q24(FOC_DT * SPD_UNIT);
+static constexpr q24_t   SPD_OBS_DT_Q   = q24(OBS_DT * SPD_UNIT);
+
 static constexpr q24_t K_B_div_J = q24(B / J * FOC_DT);
-static constexpr q24_t K_Kt_div_J = q24(K_t / J * FOC_DT);
+static constexpr q24_t K_Kt_div_J = q24(K_t / J * FOC_DT / SPD_UNIT);
 
 /* 外环工作模式：默认 Current = 不接外环（iq 给定仍由外部直接给 pid_iq，行为与原来一致） */
 enum class FocLoopMode : uint8_t { Current = 0, Speed, Pos };
@@ -31,11 +37,7 @@ enum class FocLoopMode : uint8_t { Current = 0, Speed, Pos };
 class FocDriver{
 public:
     FocDriver(MT6701_SSI& enc);
-    foc_pi_controller pid_id;
-    foc_pi_controller pid_iq;
-    foc_pi_controller pid_spd;    /* 速度环：机械角速度(rad/s) → iq 给定(A) */
-    PID<float> pid_pos;   /* 位置环：连续机械角(rad) → 速度给定(rad/s) */
-    
+
     void outputVoltage(q24_t u, q24_t v, q24_t w);
 
     void calibCurrent();
@@ -53,12 +55,52 @@ public:
     void setLoopMode(FocLoopMode mode);
     FocLoopMode getLoopMode() const { return loop_mode_; }
 
-    void setCurrentCutoffFreq(float cutoff_freq) {
+    void setCurrentLoopLimits(q24_t vd_limit_v, q24_t vq_limit_v) {
+        pid_id.setOutputLimit(vd_limit_v);
+        pid_iq.setOutputLimit(vq_limit_v);
+    }
+    void setCurrentLoopBandWidth(float bw){
+        constexpr float k_current = R_s / L_s;
+        float kp_iq = M_TWOPI * L_s * bw;;
+        float kp_id = kp_iq * 0.8f;
+        pid_iq.setKp(q24(kp_iq));
+        pid_iq.setKiDt(q24(kp_iq * k_current * FOC_DT));
+        pid_id.setKp(q24(kp_id));
+        pid_id.setKiDt(q24(kp_id * k_current * FOC_DT));
+    }
+    void setIdRef(q24_t i_d_a) { pid_id.setTarget(i_d_a); }
+    void setIqRef(q24_t i_q_a) { pid_iq.setTarget(i_q_a); }
+
+    void setSpeedLoopBandWidth(float bw, float zeta){
+        float wn_exp_spd = M_TWOPI * bw;
+        float kp_spd = 2.0f * zeta * wn_exp_spd * J / K_t;
+        float ki_spd = wn_exp_spd * wn_exp_spd * J / K_t;
+        pid_spd.setKp(q24(kp_spd * SPD_UNIT));
+        pid_spd.setKiDt(q24(ki_spd * SPD_UNIT * SPD_DT));
+    }
+    void setSpeedLoopLimit(q24_t iq_limit_a) { pid_spd.setOutputLimit(iq_limit_a); }
+    void setSpeedRef(q24_t w_rad_s) { pid_spd.setTarget(w_rad_s * INV_SPD_UNIT_Q); }
+
+    void setPosLoopBandWidth(float bw){
+        float wn_exp_pos = M_TWOPI * bw;
+        float kp_pos = wn_exp_pos;
+        pid_pos.setFactors(kp_pos);
+    }
+    void setPosLoopFF(float kfa){
+        pid_pos.setKfa(kfa);
+    }
+    void setPosLoopLimit(float w_limit_radps, float ki_limit_w) {
+        pid_pos.setLimit(w_limit_radps, ki_limit_w);
+    }
+
+    void setPosRef(float pos_rad) { pid_pos.setTarget(pos_rad); }
+
+    void setCurrentFiltCutoffFreq(float cutoff_freq) {
         current_filt_coeff_ = q24(1.0f - 1.0f / (1.0f + 2.0f * M_PI * cutoff_freq * FOC_DT));
         if (current_filt_coeff_ < 0) current_filt_coeff_ = Q24_ZERO;
         else if (current_filt_coeff_ > 1) current_filt_coeff_ = Q24_ONE; 
     }
-    void setSpeedFiltCoeff(float cutoff_freq) {
+    void setSpeedFFFiltCutoffFreq(float cutoff_freq) {
         speed_filt_coeff_ = q24(1.0f - 1.0f / (1.0f + 2.0f * M_PI * cutoff_freq * FOC_DT));
         if (speed_filt_coeff_ < 0) speed_filt_coeff_ = Q24_ZERO;
         else if (speed_filt_coeff_ > 1) speed_filt_coeff_ = Q24_ONE;
@@ -66,18 +108,18 @@ public:
 
     void setEsoCoeffs(float l1, float l2) {
         eso_coeffs.l1 = q24(l1 * FOC_DT);
-        eso_coeffs.l2 = q24(l2 * FOC_DT);
+        eso_coeffs.l2 = q24(l2 * SPD_UNIT * FOC_DT);
     }
 
     void setSpeedABFiltCoeff(float a, float b) {
         abfilt_coeffs.a = q24(a * OBS_DT);
-        abfilt_coeffs.b = q24(b * OBS_DT / 32.0f);
+        abfilt_coeffs.b = q24(b * OBS_DT / (32.0f * SPD_UNIT));
     }
 
-    void setDisturbFiltCoeff(float cutoff_freq) {
+    void setDisturbFiltCutoffFreq(float cutoff_freq) {
         disturb_filt_coeff_ = q24(1.0f - 1.0f / (1.0f + 2.0f * M_PI * cutoff_freq * FOC_DT));
-        if (disturb_filt_coeff_ < 0) current_filt_coeff_ = Q24_ZERO;
-        else if (disturb_filt_coeff_ > 1) current_filt_coeff_ = Q24_ONE; 
+        if (disturb_filt_coeff_ < 0) disturb_filt_coeff_ = Q24_ZERO;
+        else if (disturb_filt_coeff_ > 1) disturb_filt_coeff_ = Q24_ONE; 
     }
 
     /* current loop debug */
@@ -97,7 +139,7 @@ public:
     q24_t getEsoState1() const { return eso_states.mech_spd_hat; }
     q24_t getEsoState2() const { return eso_states.disturb_hat; }
 
-    /* outer loop debug */
+    /* outer loop debug; speed values are scaled: rad/s = cvt2float() * SPD_UNIT */
     q24_t getSpeedRef() const { return pid_spd.getTarget(); }
     q24_t getSpeedFb()  const { return mech_speed; }
     q24_t getPosRef()   const { return q24(pid_pos.getTarget()); }
@@ -114,9 +156,17 @@ public:
     void updatePosLoop();
 
     void observeMechSpeed();
-    void observeMechSpeed2();
+
+    float getContMechAng();
 private:
     MT6701_SSI& encoder;
+
+    /* loops: only reachable through the set*Loop* / set*Ref setters above */
+    foc_pi_controller pid_id;
+    foc_pi_controller pid_iq;
+    foc_pi_controller pid_spd;
+    PID<float> pid_pos;
+
     q24_t vbus = Q24_ZERO;
     q24_t inv_vbus = Q24_MAX;
     q24_t mech_ang = Q24_ZERO;
@@ -124,7 +174,7 @@ private:
     q24_t elec_ang = Q24_ZERO;
     q24_t elec_ang_last = Q24_ZERO;
     q24_t mech_ang_diff = Q24_ZERO;
-    q24_t mech_speed = Q24_ZERO;
+    q24_t mech_speed = Q24_ZERO;   /* scaled: w / SPD_UNIT */
     q24_t disturbance = Q24_ZERO;
 
     inline void readMechanAngFromEnc() { 
@@ -133,7 +183,7 @@ private:
     };
     void updateMechSpeed();
     
-    void eso(q24_t mech_speed_meas);
+    void observeDisturb(q24_t mech_speed_meas);
 
     struct{
         q24_t u = Q24_ZERO;
@@ -163,7 +213,7 @@ private:
     bool   mech_spd_init_ = false;
 
     volatile q24_t current_loop_cmd = Q24_ZERO;
-    volatile q24_t speed_loop_cmd = Q24_ZERO;
+    volatile q24_t speed_loop_cmd = Q24_ZERO;   /* scaled: w / SPD_UNIT */
     
     q24_t current_filt_coeff_ = q24(0.2f);
     q24_t speed_filt_coeff_   = q24(0.15f);
@@ -181,8 +231,8 @@ private:
     } eso_coeffs = {Q24_ZERO, Q24_ZERO};
 
     struct eso_state{
-        q24_t mech_spd_hat;
-        q24_t disturb_hat;
+        q24_t mech_spd_hat;   /* scaled: w / SPD_UNIT */
+        q24_t disturb_hat;    /* A */
     } eso_states = {Q24_ZERO, Q24_ZERO};
 
     /* ---- 外环状态 ---- */
