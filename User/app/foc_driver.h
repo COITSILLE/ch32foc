@@ -48,7 +48,13 @@ public:
 
     void outputVoltage(q24_t u, q24_t v, q24_t w);
 
-    void enable() { en_ = true; }
+    void enable() { 
+        pid_id.reset();
+        pid_iq.reset();
+        pid_spd.reset();
+        pid_pos.reset();
+        en_ = true;
+    }
     void disable() { en_ = false; }
 
     void calibCurrent();
@@ -182,7 +188,7 @@ private:
     foc_pi_controller pid_spd;
     foc_pi_controller pid_pos;
 
-    bool en_ = false;
+    volatile bool en_ = false;
 
     struct{
         float bw;

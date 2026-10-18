@@ -38,6 +38,9 @@ enum class Cmd : uint8_t {
     GET_MODE,
     GET_ERROR,
 
+    ENABLE,
+    DISABLE,
+
     SET_MODE,
     SET_CURRENT,
     SET_SPEED,
@@ -53,7 +56,7 @@ enum class Cmd : uint8_t {
 };
 
 enum class CmdDebug : uint8_t {
-    CALIB_ZERO_POS = 0x13,
+    CALIB_ZERO_POS = (int)Cmd::SET_ABFILT_ZETA + 1,
     
     GET_ADDR,
     GET_DVC_INFO,

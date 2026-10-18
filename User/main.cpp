@@ -758,6 +758,14 @@ void cmd_execute(bool is_valid, uint8_t tag, uint8_t cmd, uint32_t data)
                 v[0] = (uint32_t)g_foc.getVbus().val;
                 n = 1;
                 break;
+            case Cmd::ENABLE:
+                g_foc.enable();
+                n = 1;
+                break;
+            case Cmd::DISABLE:
+                g_foc.disable();
+                n = 1;
+                break;
             
             default:
                 n = 1;

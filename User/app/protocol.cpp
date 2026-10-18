@@ -15,7 +15,7 @@ void DeviceProtocolRx::processCmdFrame(uint8_t rx_byte){
             data_index = 0;
             last_cmd_frame_.tag_n_cmd = rx_byte;
             uint8_t cmd = last_cmd_frame_.tag_n_cmd & 0x1f;
-            if(cmd > (uint8_t)Cmd::NOP && cmd <= (uint8_t)Cmd::GET_ERROR){
+            if(cmd > (uint8_t)Cmd::NOP && cmd < (uint8_t)Cmd::SET_MODE){
                 state = CHECKSUM;
             }
             else{
@@ -98,11 +98,11 @@ void do_crc(uint8_t* crc, uint8_t new_data){
 }
 
 void DeviceProtocolTx::setTag(uint8_t tag){
-    tx_buf_[0] = (static_cast<uint8_t>(tag) & 0x07) << 5;
+    tx_buf_[0] |= (static_cast<uint8_t>(tag) & 0x07) << 5;
 }
 
 void DeviceProtocolTx::setType(DataFrameType type){
-    tx_buf_[0] = static_cast<uint8_t>(type) & 0x1f;
+    tx_buf_[0] |= static_cast<uint8_t>(type) & 0x1f;
     tx_len_ = 2;
 }
 

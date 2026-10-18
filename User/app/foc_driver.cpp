@@ -22,6 +22,7 @@ void FocDriver::outputVoltage(q24_t u, q24_t v, q24_t w){
     dv = (dv < FOC_DUTY_MIN) ? FOC_DUTY_MIN : (dv > FOC_DUTY_MAX) ? FOC_DUTY_MAX : dv;
     dw = (dw < FOC_DUTY_MIN) ? FOC_DUTY_MIN : (dw > FOC_DUTY_MAX) ? FOC_DUTY_MAX : dw;
     if (en_) inv_set_duty((uint16_t)du, (uint16_t)dv, (uint16_t)dw);
+    else     inv_set_duty(0x8000, 0x8000, 0x8000);
 }
 
 void FocDriver::updateCurrLoop(){
@@ -210,9 +211,12 @@ void FocDriver::setVbus(q24_t vbus){
 
 q24_t FocDriver::calibZeroPos(){
     calibrating = true;
+    bool en_bak = en_;
+    if (!en_bak) enable();
 
     if (vbus == 0) {
         calibrating = false;
+        if (!en_bak) disable();
         return Q24_ZERO;
     }
     outputVoltage(q24(0.0f), q24(0.0f), q24(0.0f));
@@ -226,6 +230,7 @@ q24_t FocDriver::calibZeroPos(){
     pid_id.reset();
     pid_iq.reset();
     calibrating = false;
+    if (!en_bak) disable();
 
     return this->ang_calib;
 };
