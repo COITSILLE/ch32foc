@@ -8,13 +8,16 @@
 #include "peripheral.h"
 #include "system_ch32m030.h"
 #include "systick_time.h"
+#include "foc_config.h"
 
 void PERIPHS_INIT(void)
 {
     // GPIO_ProbeIsr_Init();   /* PA6 探针：ADC ISR 窗口（软件翻转） */
 
     PWR_VDD8_Config(PWR_VDD8_SEL_8V);
+#if (FOC_LINK_MODE == FOC_LINK_TM)
     printf("[p] VDD8 ok\r\n");
+#endif
 
     TIM1_Init();
 
@@ -43,16 +46,44 @@ void UART_Init(uint32_t baudrate){
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_OD;
     GPIO_Init(GPIOB, &GPIO_InitStructure);
 
-    USART_InitStructure.USART_BaudRate = 115200;
+    USART_InitStructure.USART_BaudRate = baudrate;
     USART_InitStructure.USART_WordLength = USART_WordLength_8b;
     USART_InitStructure.USART_StopBits = USART_StopBits_1;
     USART_InitStructure.USART_Parity = USART_Parity_No;
     USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-    USART_InitStructure.USART_Mode = USART_Mode_Tx;
+    USART_InitStructure.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
 
     USART_IrDACmd(USART1, DISABLE);
-    USART_HalfDuplexCmd(USART1, ENABLE);
     USART_Init(USART1, &USART_InitStructure);
+    USART_HalfDuplexCmd(USART1, ENABLE);
+
+    NVIC_SetPriority(USART1_IRQn, (uint8_t)(3 << 6));
+    NVIC_EnableIRQ(USART1_IRQn);
+
+    DMA_InitTypeDef dma = {0};
+
+    RCC_HBPeriphClockCmd(RCC_HBPeriph_DMA1, ENABLE);
+    DMA_DeInit(UART_DMA_TX_CHANNEL);
+    DMA_DeInit(UART_DMA_RX_CHANNEL);
+
+    dma.DMA_PeripheralBaseAddr = (uint32_t)&USART1->DATAR;
+    dma.DMA_MemoryBaseAddr     = (uint32_t)NULL;
+    dma.DMA_DIR                = DMA_DIR_PeripheralDST;
+    dma.DMA_BufferSize         = 256; //Enough big, handled by interrupt
+    dma.DMA_PeripheralInc      = DMA_PeripheralInc_Disable;
+    dma.DMA_MemoryInc          = DMA_MemoryInc_Enable;
+    dma.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
+    dma.DMA_MemoryDataSize     = DMA_MemoryDataSize_Byte;
+    dma.DMA_Mode               = DMA_Mode_Normal;
+    dma.DMA_Priority           = DMA_Priority_High;
+    dma.DMA_M2M                = DMA_M2M_Disable;
+    DMA_Init(UART_DMA_TX_CHANNEL, &dma);
+    dma.DMA_PeripheralBaseAddr = (uint32_t)&USART1->DATAR;
+    dma.DMA_MemoryBaseAddr     = (uint32_t)NULL;
+    dma.DMA_DIR                = DMA_DIR_PeripheralSRC;
+    dma.DMA_BufferSize         = 256; //Enough big, handled by interrupt
+    dma.DMA_Mode               = DMA_Mode_Circular;
+    DMA_Init(UART_DMA_RX_CHANNEL, &dma);
 }
 
 /*********************************************************************

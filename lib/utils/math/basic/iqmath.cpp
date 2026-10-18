@@ -146,33 +146,8 @@ q24_t q_sqrt(q24_t x){
     return q24_t::from_raw(y);
 }
 
-q24_t q_sin(q24_t x){
-    // 1) Reduce to [0, 2pi): one q_mod + single negative fix-up (no while loop)
-    x = q_mod(x, Q24_TWOPI);
-    if (x.val < 0) x = x + Q24_TWOPI;
-    // 2) Quadrant reduction to [0, pi/2]
-    int32_t sign = 0;
-    if (x.val > Q24_PI.val)   { sign = 1; x = x - Q24_PI; }
-    if (x.val > Q24_PI_2.val) { x = Q24_PI - x; }
-    // 3) 0.05 rad step table + linear interpolation
-    int64_t p20 = (int64_t)x.val * 20;          // idx = x/0.05
-    int idx_low = (int)(p20 >> 24);
-    uint32_t t  = (uint32_t)(p20 & 0xFFFFFF);   // fractional part (Q24)
-    int idx_high = idx_low + 1;
-    if (idx_high >= 33) {                        // guard (should not happen)
-        return q24_t::from_raw(sign ? - (1 << 24) : (1 << 24));
-    }
-    int32_t delta = q24_sin_lut[idx_high] - q24_sin_lut[idx_low];
-    int32_t y = q24_sin_lut[idx_low] + (int32_t)(((int64_t)delta * t) >> 24);
-    return q24_t::from_raw(sign ? -y : y);
-}
-
-q24_t q_cos(q24_t x){
-    return q_sin(x + Q24_PI_2);
-}
-
 /* sin of an angle already reduced to [0, pi/2] (Q24 rad): 0.05 rad LUT + linear interp.
- * 与 q_sin 第三步完全同一段插值逻辑，抽出来供 q_sincos 同时取 sin(u) 与 cos(u)。 */
+ */
 static inline int32_t q24_sin_quarter(q24_t x){
     int64_t p20 = (int64_t)x.val * 20;          // idx = x/0.05
     int idx_low = (int)(p20 >> 24);
@@ -183,17 +158,41 @@ static inline int32_t q24_sin_quarter(q24_t x){
     return q24_sin_lut[idx_low] + (int32_t)(((int64_t)delta * t) >> 24);
 }
 
-void q_sincos(q24_t x, q24_t* s, q24_t* c){
-    // 1) Reduce to [0, 2pi) once (one q_mod division shared by both outputs)
+q24_t q_sin(q24_t x){
+    // 1) Reduce to [0, 2pi): one q_mod + single negative fix-up (no while loop)
     x = q_mod(x, Q24_TWOPI);
     if (x.val < 0) x = x + Q24_TWOPI;
+    // 2) Quadrant reduction to [0, pi/2]
+    int32_t sign = 0;
+    if (x.val > Q24_PI.val)   { sign = 1; x = x - Q24_PI; }
+    if (x.val > Q24_PI_2.val) { x = Q24_PI - x; }
+    // 3) 0.05 rad step table + linear interpolation
+    int32_t y = q24_sin_quarter(x);
+    return q24_t::from_raw(sign ? -y : y);
+}
+
+q24_t q_cos(q24_t x){
+    return q_sin(x + Q24_PI_2);
+}
+
+void q_sincos(q24_t x, q24_t* s, q24_t* c){
+    // 1) Reduce to [0, 2pi) 
+    // x = n*2pi + r
+    constexpr q24_t Q24_INV_TWOPI = 1.0f / Q24_TWOPI;
+    int32_t n = q24_mul_w(x, Q24_INV_TWOPI).val >> 24; // floor to get n = x/(2pi), int
+    q24_t r = q24_sub_w(x, q24_t::from_raw(n * Q24_TWOPI.val));// r = x - n*2pi
+    if (r < 0) r = q24_add_w(r, Q24_TWOPI);
+    if (r > Q24_TWOPI) r = q24_sub_w(r, Q24_TWOPI);// guard
+    x = r;
+
     // 2) Quadrant split: x = k*(pi/2) + u, k in {0..3}, u in [0, pi/2)
     int k;
     q24_t u;
-    if      (x.val < Q24_PI_2.val)                  { k = 0; u = x; }
-    else if (x.val < Q24_PI.val)                    { k = 1; u = x - Q24_PI_2; }
-    else if (x.val < (Q24_TWOPI - Q24_PI_2).val)    { k = 2; u = x - Q24_PI; }
-    else                                            { k = 3; u = x - (Q24_TWOPI - Q24_PI_2); }
+    constexpr q24_t Q24_3PI_2 = Q24_TWOPI - Q24_PI_2;
+    if      (x < Q24_PI_2)              { k = 0; u = x; }
+    else if (x < Q24_PI)                { k = 1; u = x - Q24_PI_2; }
+    else if (x < Q24_3PI_2)             { k = 2; u = x - Q24_PI; }
+    else                                { k = 3; u = x - (Q24_TWOPI - Q24_PI_2); }
     // 3) Same forward LUT interp: sin(u), cos(u) = sin(pi/2 - u) (mirror angle in [0, pi/2])
     int32_t su = q24_sin_quarter(u);
     int32_t cu = q24_sin_quarter(Q24_PI_2 - u);

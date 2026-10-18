@@ -15,6 +15,7 @@
 #include "ch32m030_adc.h"
 #include "ch32m030_tim.h"
 #include "ch32m030_uart.h"
+#include "foc_config.h"
 #include <stdint.h>
 
 void NMI_Handler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
@@ -28,6 +29,9 @@ void ADC_JEOC_irqHandler(void);
 void updateEncoder(void);
 void ssi_irqHandler();
 void task_outer_loop(void);
+#if (FOC_LINK_MODE == FOC_LINK_PROTOCOL)
+void uart_irqHandler(void);
+#endif
 
 /*********************************************************************
  * @fn      NMI_Handler
@@ -88,9 +92,9 @@ void ADC_IRQHandler(void)
 
 void USART1_IRQHandler(void)
 {
-
-    //irqHandler()
-    
+#if (FOC_LINK_MODE == FOC_LINK_PROTOCOL)
+    uart_irqHandler();
+#endif
 }
 
 void TIM2_IRQHandler(void){

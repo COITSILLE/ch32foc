@@ -1,39 +1,54 @@
 #pragma once
 
+#include "ch32m030.h"
 #include "sys_interface.h"
 #include "ring_buffer.h"
 #include <cstdint>
 
 #ifdef __cplusplus
 
-struct uart_halfduplex_callback_funcs{
-    void(*tx_cplt)(void) = nullptr;
-    void(*rx_cplt)(uint16_t size) = nullptr;
-};
+
 
 class UART_HalfDuplex {
 public:
-    UART_HalfDuplex(USART_TypeDef* usart, uint8_t* rx_buffer, uint16_t rx_buffer_size);
-    void init(uart_halfduplex_callback_funcs cbs = {nullptr, nullptr});
+    struct Config;
+    struct CallbackFuncs;
+
+    UART_HalfDuplex(const Config& config, CallbackFuncs cbs = {nullptr, nullptr});
+    void init();
     bool transmit_async(uint8_t* data, uint16_t size);
-    bool receive_variable();
+    bool receive_variable_on();
+    void abort_receive();
 
     void irqHandler();
 
-    RingBuffer<uint8_t> rx_rb;
+    bool readByte(uint8_t &byte);
+
+    struct Config {
+        USART_TypeDef* usart;
+        uint8_t* rx_buffer;
+        uint16_t rx_buffer_size;
+
+        DMA_Channel_TypeDef *tx_dma_channel;
+        DMA_Channel_TypeDef *rx_dma_channel;
+        uint32_t tx_dma_tc_flag;
+    };
+    struct CallbackFuncs{
+        void(*tx_cplt)(void) = nullptr;
+        void(*rx_cplt)(void) = nullptr;
+    };
 private:
-    USART_TypeDef* usart_;
-    volatile enum { TRANSMITTING = 0, RECEIVING, IDLE } state = IDLE;
-    volatile uint16_t pending_bytes = 0;
-    volatile uint16_t rx_size = 0;
+    Config cfg_;
 
-    volatile uint8_t* tx_buffer = nullptr;
+    volatile enum { TRANSMITTING = 0, RECEIVING} state = RECEIVING;
 
-    uart_halfduplex_callback_funcs cbs_;
+    CallbackFuncs cbs_;
+
+    volatile uint32_t rx_idx = 0;
 
     inline void clearIdle(){
-        (void)usart_->STATR;
-        (void)USART_ReceiveData(usart_);
+        (void)cfg_.usart->STATR;
+        (void)USART_ReceiveData(cfg_.usart);
     }
 };
 

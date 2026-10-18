@@ -38,9 +38,7 @@ static inline void inv_clarke(q24_t i_alpha, q24_t i_beta, q24_t *i_u, q24_t *i_
 class foc_pi_controller{
 public:
     foc_pi_controller(void) = default;
-    inline q24_t getOutput(q24_t fb_){
-        q24_t err = q24_sub_w(sp_, fb_);
-
+    inline q24_t getOutputErr(q24_t err){
         q24_t p_term = kp_ * err;
 
         q24_t out_raw = q24_add_w(p_term, integ_);
@@ -58,6 +56,10 @@ public:
         }
 
         return out_raw;
+    }
+    inline q24_t getOutput(q24_t fb){
+        q24_t err = q24_sub_w(sp_, fb);
+        return getOutputErr(err);
     }
     void clamp(q24_t *out){
         if (*out > out_lim_) *out = out_lim_;

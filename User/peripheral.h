@@ -14,6 +14,12 @@
 extern "C" {
 #endif
 
+#define UART_DMA_TX_CHANNEL  DMA1_Channel6
+#define UART_DMA_TX_TC_FLAG  DMA1_FLAG_TC6
+#define UART_DMA_RX_CHANNEL  DMA1_Channel7
+#define GPIO_Pin_LED         GPIO_Pin_7
+#define GPIO_Pin_SEL         GPIO_Pin_0
+
 void UART_Init(uint32_t baudrate);
 void GPIO_ProbeIsr_Init(void);   /* PA6 探针：ADC ISR 窗口（进 ISR 高、出 ISR 低，软件时序） */
 void GPIO_LED_Init();
@@ -45,8 +51,6 @@ void Simu_SSI_Perips_Init();   /* 模拟 SSI：用于与外部设备通信 */
 void OPA_Init(void);
 void ADC1_Init(void);
 void USART1_DMA_TX_Init(void);   /* 闭环 1kHz DMA 遥测：DMA1_Channel6(=USART1_TX) + TC 中断 */
-
-void PERIPHS_INIT(void);
 
 #ifdef __cplusplus
 }

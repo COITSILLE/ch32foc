@@ -9,8 +9,7 @@ FocDriver::FocDriver(MT6701_SSI& enc)
  , pid_spd()
  , pid_pos()
 {
-    pid_pos.setDt(SPD_DT * 2.0f);
-    pid_pos.setDiffMode(DiffMode::DisableDiff);
+
 }
 
 void FocDriver::outputVoltage(q24_t u, q24_t v, q24_t w){
@@ -22,7 +21,7 @@ void FocDriver::outputVoltage(q24_t u, q24_t v, q24_t w){
     du = (du < FOC_DUTY_MIN) ? FOC_DUTY_MIN : (du > FOC_DUTY_MAX) ? FOC_DUTY_MAX : du;
     dv = (dv < FOC_DUTY_MIN) ? FOC_DUTY_MIN : (dv > FOC_DUTY_MAX) ? FOC_DUTY_MAX : dv;
     dw = (dw < FOC_DUTY_MIN) ? FOC_DUTY_MIN : (dw > FOC_DUTY_MAX) ? FOC_DUTY_MAX : dw;
-    inv_set_duty((uint16_t)du, (uint16_t)dv, (uint16_t)dw);
+    if (en_) inv_set_duty((uint16_t)du, (uint16_t)dv, (uint16_t)dw);
 }
 
 void FocDriver::updateCurrLoop(){
@@ -42,6 +41,7 @@ void FocDriver::updateCurrLoop(){
     this->elec_ang = q24_sub_w(q24_mul_w(mech_ang, q24(POLE_PAIRS)), this->ang_calib);
 
     updateMechSpeed();
+    
 
     q24_t c, s;
     q_sincos(this->elec_ang, &s, &c);
@@ -84,8 +84,7 @@ void FocDriver::updateCurrLoop(){
 }
 
 /**
- * @brief this function updates mechanical angle difference and mechanical speed.
- * @note this means the speed will take more noise.
+ * @brief this function updates mechanical angle difference, the disturbance, and mechanical speed.
  */
 void FocDriver::updateMechSpeed(){
     if (!mech_spd_init_) { 
@@ -105,6 +104,7 @@ void FocDriver::updateMechSpeed(){
 
     q24_t mech_speed_ff = mech_ang_diff / SPD_DT_DIV;
     observeDisturb(mech_speed_ff);
+
     observeMechSpeed();
 }
 
@@ -163,23 +163,14 @@ void FocDriver::updatePosLoop(){
     if (calibrating) return;
     if (loop_mode_ != FocLoopMode::Pos) return;
 
-    float pos_fb = getContMechAng();
-    //for debug
-    this->mech_ang_cont_ = q24(pos_fb);
 
-    this->speed_loop_cmd = q24(pid_pos.getOutput(pos_fb) / SPD_UNIT);
-}
+    q24_t err = q24_sub_w(pos_ref_, mech_ang_cont_) * POS_LOOP_ERR_SCALE;
 
-float FocDriver::getContMechAng(){
-    uint32_t m = __get_MSTATUS();
-    __disable_irq();
-    asm volatile ("" ::: "memory");
-    int32_t turns_copy = this->turns;
-    q24_t mech_ang_copy = this->mech_ang;
-    __set_MSTATUS(m);
+    q24_t out = pid_pos.getOutputErr(err); 
 
-    float mech_ang_cont = (float)turns_copy * M_TWOPI + mech_ang_copy.cvt2float();
-    return mech_ang_cont;
+    //kp_pos * POS_UNIT * (1/1024) / SPD_UNIT * err / POS_UNIT * 1024 = kp_pos * err / SPD_UNIT
+
+    this->speed_loop_cmd = out;
 }
 
 void FocDriver::setLoopMode(FocLoopMode mode){
@@ -218,7 +209,12 @@ void FocDriver::setVbus(q24_t vbus){
 }
 
 q24_t FocDriver::calibZeroPos(){
-    if (vbus == 0) return Q24_ZERO;
+    calibrating = true;
+
+    if (vbus == 0) {
+        calibrating = false;
+        return Q24_ZERO;
+    }
     outputVoltage(q24(0.0f), q24(0.0f), q24(0.0f));
     delay_ms_nortos(100);
     q24_t v_align = 0.15f * vbus;
@@ -226,5 +222,10 @@ q24_t FocDriver::calibZeroPos(){
     delay_ms_nortos(1000);
     readMechanAngFromEnc();
     this->ang_calib = this->mech_ang * POLE_PAIRS;
+
+    pid_id.reset();
+    pid_iq.reset();
+    calibrating = false;
+
     return this->ang_calib;
 };

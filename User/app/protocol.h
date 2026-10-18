@@ -4,10 +4,22 @@
 #include "uart_halfduplex.h"
 #include "sstrtotype.h"
 
-struct cmd_frame{
-    uint8_t cmd;
+struct long_cmd_frame{
+    uint8_t addr;
+    uint8_t tag_n_cmd;
     uint8_t data[4];
     uint8_t checksum;
+};
+struct short_cmd_frame{
+    uint8_t addr;
+    uint8_t cmd;
+    uint8_t checksum;
+};
+
+enum class DataFrameType : uint8_t {
+    REQUIRE_RESEND = 0,
+    SHORT,
+    LONG,
 };
 
 struct data_frame{
@@ -24,11 +36,6 @@ enum class Cmd : uint8_t {
     GET_POSITION,
     GET_VBUS,
     GET_MODE,
-    GET_CURRENT_BW,
-    GET_SPEED_BW,
-    GET_POS_BW,
-    GET_ESO_BW,
-    GET_ABFILT_BW,
     GET_ERROR,
 
     SET_MODE,
@@ -38,44 +45,70 @@ enum class Cmd : uint8_t {
 
     SET_CURRENT_BW,
     SET_SPEED_BW,
+    SET_SPEED_ZETA,
     SET_POS_BW,
     SET_ESO_BW,
     SET_ABFILT_BW,
+    SET_ABFILT_ZETA,
 };
 
 enum class CmdDebug : uint8_t {
-    NOP = 0x00,
-    CALIB_CURRENT = 0x00,
-    CALIB_ZERO_POS,
+    CALIB_ZERO_POS = 0x13,
+    
+    GET_ADDR,
+    GET_DVC_INFO,
 
+    SET_ADDR,
+    SET_BAUDRATE,
+    SET_DEFAULT_CONFIG,
+
+    SAVE_CONFIG,
 };
 
-void unpack_data_frame(uint8_t *buf, struct data_frame *frame){
+constexpr uint8_t GENERIC_DEVICE_ADDR = 0x00;
 
-}
-void pack_cmd_frame(uint8_t *buf, struct cmd_frame *frame){
+void do_crc(uint8_t* crc, uint8_t new_data);
 
-}
+using cmd_rcv_callback_t = void(*)(bool is_valid, uint8_t tag, uint8_t cmd, uint32_t data);
 
-class DeviceProtocol{
+class DeviceProtocolRx{
 public:
-    void pack_cmd_frame(uint8_t *buf, struct cmd_frame *frame);
+    DeviceProtocolRx(cmd_rcv_callback_t callback) : cmd_callback(callback) {}
 
-    bool processCmdFrame(uint8_t rx_byte);
+    void setAddr(uint8_t addr) { device_addr_ = addr; }
+
+    void processCmdFrame(uint8_t rx_byte);
 
     void cpltSend() { if (state == AWAITS_SEND) state = IDLE; }
+    void rcvIdle() { if (state > IDLE) state = IDLE; } // reset the state machine
 private:
-    bool checksum();
-    bool is_last_frame_valid;
+    bool is_addr_matched = false;
     enum {
         AWAITS_SEND = 0,
         IDLE,
         CMD,
         DATA,
         CHECKSUM,
-    } state;
+    } state = IDLE;
 
-    uint8_t data_index;
-    uint8_t data_buf[4];
-    cmd_frame last_cmd_frame_;
+    uint8_t device_addr_ = 0x00;
+
+    cmd_rcv_callback_t cmd_callback = nullptr;
+
+    uint8_t data_index = 0;
+    uint8_t data_buf[4] = {0};
+    long_cmd_frame last_cmd_frame_ = {0};
+
+    uint32_t timeout_stamp = 0;
+};
+
+class DeviceProtocolTx{
+public:
+    void setTag(uint8_t tag);
+    void setType(DataFrameType type);
+    void setData(const uint8_t* data, int len);
+    int getTxFrame(uint8_t* buf);
+private:
+    uint8_t tx_buf_[16] = {0};
+    int tx_len_ = 0;
 };
