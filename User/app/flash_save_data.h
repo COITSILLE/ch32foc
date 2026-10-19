@@ -59,3 +59,11 @@ const flash_data flash_data_default = {
     .done = FLASH_DATA_DONE_SIGN
 };
 
+enum MotorErrors {
+    ERR_OVER_VOLTAGE = 1u << 1,
+    ERR_UNDER_VOLTAGE = 1u << 2,
+    ERR_OVER_CURRENT = 1u << 3,
+    ERR_READ_FLASH = 1u << 4,
+    ERR_READ_ANG = 1u << 5,
+};
+

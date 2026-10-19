@@ -175,14 +175,32 @@ void FocDriver::updatePosLoop(){
 }
 
 void FocDriver::setLoopMode(FocLoopMode mode){
+    const bool en_bak = en_;
+    en_ = false;
+
+    __disable_irq();
+
+    reset();
+
+    switch (mode) {
+        case FocLoopMode::Current:
+            pid_iq.setTarget(i_q_fb_filt_);
+            pid_id.setTarget(Q24_ZERO);
+            break;
+        case FocLoopMode::Speed:
+            pid_spd.setTarget(mech_speed);
+            break;
+        case FocLoopMode::Pos:
+            pos_ref_ = mech_ang_cont_;
+            pid_spd.setTarget(Q24_ZERO);
+            break;
+    }
+
     this->loop_mode_ = mode;
-    if (mode == FocLoopMode::Current) {
-        this->pid_spd.reset();
-        this->pid_pos.reset();
-    }
-    else if (mode == FocLoopMode::Speed) {
-        this->pid_pos.reset();
-    }
+
+    if (en_bak) en_ = true;
+
+    __enable_irq();
 }
 
 void FocDriver::calibCurrent(){

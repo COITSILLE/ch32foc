@@ -49,13 +49,13 @@ public:
     void outputVoltage(q24_t u, q24_t v, q24_t w);
 
     void enable() { 
-        pid_id.reset();
-        pid_iq.reset();
-        pid_spd.reset();
-        pid_pos.reset();
+        reset();
         en_ = true;
     }
-    void disable() { en_ = false; }
+    void disable() { 
+        en_ = false;
+        reset();
+    }
 
     void calibCurrent();
     q24_t calibZeroPos();
@@ -178,6 +178,34 @@ public:
     void updateCurrLoop();
     void updateSpeedLoop();
     void updatePosLoop();
+
+    void reset(){
+        __disable_irq();
+
+        pid_iq.reset();
+        pid_id.reset();
+        pid_spd.reset();
+        pid_pos.reset();
+        
+        current_loop_cmd = Q24_ZERO;
+        speed_loop_cmd = Q24_ZERO;
+
+        mech_ang_diff = Q24_ZERO;
+        mech_speed = Q24_ZERO;
+
+        eso_states.mech_spd_hat = Q24_ZERO;
+        eso_states.disturb_hat = Q24_ZERO;
+
+        disturbance = Q24_ZERO;
+
+        mech_spd_init_ = false;
+
+        i_d_fb_filt_ = i_d_fb_;
+        i_q_fb_filt_ = i_q_fb_;
+        theta_hat = mech_ang;
+
+        __enable_irq();
+    }
     
 private:
     MT6701_SSI& encoder;
@@ -215,7 +243,6 @@ private:
     q24_t mech_ang = Q24_ZERO;
     int32_t turns = 0;
     q24_t elec_ang = Q24_ZERO;
-    q24_t elec_ang_last = Q24_ZERO;
     q24_t mech_ang_diff = Q24_ZERO;
     q24_t mech_speed = Q24_ZERO;   /* scaled: w / SPD_UNIT */
     q24_t disturbance = Q24_ZERO;
@@ -229,6 +256,7 @@ private:
         mech_ang_cont_ = q24_t::from_raw(turns * (1 << 14) | mech_ang_raw);
         // q17.14(2pi*rad) reinterpret as q24_t for calc
     };
+
     void updateMechSpeed();
 
     void observeMechSpeed();
@@ -287,6 +315,6 @@ private:
 
     /* ---- 外环状态 ---- */
     FocLoopMode loop_mode_   = FocLoopMode::Current;
-    q24_t mech_ang_cont_     = Q24_ZERO;  // 连续机械角（rad，多圈累加；位置环反馈，±128rad 饱和）
+    q24_t mech_ang_cont_     = Q24_ZERO;
     q24_t pos_ref_           = Q24_ZERO;
 };

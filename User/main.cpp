@@ -213,9 +213,9 @@ int main(void)
 
     GPIO_Sel_Init();
     GPIO_LED_Init();
-    GPIO_SetBits(GPIOA, GPIO_Pin_LED);
-    delay_ms_nortos(1000);
     GPIO_ResetBits(GPIOA, GPIO_Pin_LED);
+    delay_ms_nortos(1000);
+    GPIO_SetBits(GPIOA, GPIO_Pin_LED);
 
     if (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_0) == Bit_RESET) {
         BOOT_MODE = DEBUG_;
@@ -341,9 +341,9 @@ static void saveConfigToFlash(flash_data* fdata){
         uint32_t data1 = data_word[i * 2];
         if (i * 2 + 1 < size_word) {
             uint32_t data2 = data_word[i * 2 + 1];
-            FLASH_BufLoad(FOC_SAVE_DATA_ADDR + i * 2, data1, data2);
+            FLASH_BufLoad(FOC_SAVE_DATA_ADDR + i * 8, data1, data2);
         } else {
-            FLASH_BufLoad(FOC_SAVE_DATA_ADDR + i * 2, data1, 0);
+            FLASH_BufLoad(FOC_SAVE_DATA_ADDR + i * 8, data1, 0);
         }
         while(FLASH_WaitForLastOperation(100000) != FLASH_COMPLETE) {}
     }
@@ -523,9 +523,10 @@ static void task_protocol(void)
 
 void cmd_execute(bool is_valid, uint8_t tag, uint8_t cmd, uint32_t data)
 {
-    GPIO_WriteBit(GPIOA, GPIO_Pin_LED, Bit_SET);
+    GPIO_WriteBit(GPIOA, GPIO_Pin_LED, Bit_RESET);
     uint32_t v[3];
     memset(v, 0, sizeof(v));
+    memset(tx_buffer, 0, sizeof(tx_buffer));
     int n = 1;
     if (!is_valid){
         n = 3;
@@ -676,6 +677,6 @@ void uart_tx_cplt_callback(void)
 {
     g_uart.receive_variable_on();
     g_protocol_rx.cpltSend();
-    GPIO_WriteBit(GPIOA, GPIO_Pin_LED, Bit_RESET);
+    GPIO_WriteBit(GPIOA, GPIO_Pin_LED, Bit_SET);
 }
 #endif  /* FOC_LINK_MODE == FOC_LINK_PROTOCOL */

@@ -117,7 +117,7 @@ void GPIO_Sel_Init(){
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_30MHz;
     GPIO_Init(GPIOB, &GPIO_InitStructure);
 
-    EXTEN->EXTEN_KEYR &= 0x00000000; // reset;
+    // EXTEN->EXTEN_KEYR &= 0x00000000; // reset;
     EXTEN->EXTEN_KEYR |= EXTEN_KEY1;
     EXTEN->EXTEN_KEYR |= EXTEN_KEY2;
 

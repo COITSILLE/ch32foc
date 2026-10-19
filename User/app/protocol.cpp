@@ -98,10 +98,12 @@ void do_crc(uint8_t* crc, uint8_t new_data){
 }
 
 void DeviceProtocolTx::setTag(uint8_t tag){
+    tx_buf_[0] &= 0x1f; // clear the tag bits
     tx_buf_[0] |= (static_cast<uint8_t>(tag) & 0x07) << 5;
 }
 
 void DeviceProtocolTx::setType(DataFrameType type){
+    tx_buf_[0] &= 0xe0; // clear the type bits
     tx_buf_[0] |= static_cast<uint8_t>(type) & 0x1f;
     tx_len_ = 2;
 }

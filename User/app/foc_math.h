@@ -47,10 +47,10 @@ public:
 
         if (out_raw > out_lim_) {
             out_raw = out_lim_;
-            integ_ = q24_sub_w(q24_sub_w(out_lim_, p_term), out_ff);
+            if (ki_dt_ != 0) integ_ = q24_sub_w(q24_sub_w(out_lim_, p_term), out_ff);
         } else if (out_raw < -out_lim_) {
             out_raw = -out_lim_;
-            integ_ = q24_sub_w(q24_sub_w(-out_lim_, p_term), out_ff);
+            if (ki_dt_ != 0) integ_ = q24_sub_w(q24_sub_w(-out_lim_, p_term), out_ff);
         } else {
             integ_ = q24_add_w(integ_, q24_mul_w(err, ki_dt_));
         }

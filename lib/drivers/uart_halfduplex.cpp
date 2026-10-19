@@ -51,38 +51,37 @@ bool UART_HalfDuplex::transmit_async(uint8_t* data, uint16_t size){
 
     USART_ITConfig(cfg_.usart, USART_IT_IDLE, DISABLE);
 
-    state = TRANSMITTING;
-
-    clearIdle();
-    USART_ClearFlag(cfg_.usart, USART_FLAG_TC);
     
+    USART_DMACmd(cfg_.usart, USART_DMAReq_Rx, DISABLE);
+    DMA_Cmd(cfg_.rx_dma_channel, DISABLE);
     cfg_.usart->CTLR1 &= ~UART_CTLR1_RE;
-
+    clearIdle();
+    
     DMA_Cmd(cfg_.tx_dma_channel, DISABLE);
     cfg_.tx_dma_channel->CNTR  = size;
     cfg_.tx_dma_channel->MADDR = (uint32_t)data;
     DMA_ClearFlag(cfg_.tx_dma_tc_flag);
-    USART_DMACmd(cfg_.usart, USART_DMAReq_Tx, ENABLE);
-    USART_DMACmd(cfg_.usart, USART_DMAReq_Rx, DISABLE);
-    cfg_.usart->CTLR1 |= UART_CTLR1_TE;
-    DMA_Cmd(cfg_.tx_dma_channel, ENABLE);
-    DMA_Cmd(cfg_.rx_dma_channel, DISABLE);
-    
+
+    USART_ClearFlag(cfg_.usart, USART_FLAG_TC);
     USART_ITConfig(cfg_.usart, USART_IT_TC, ENABLE);
 
+    USART_DMACmd(cfg_.usart, USART_DMAReq_Tx, ENABLE);
+    DMA_Cmd(cfg_.tx_dma_channel, ENABLE);
+    
+    cfg_.usart->CTLR1 |= UART_CTLR1_TE;
+    
+    state = TRANSMITTING;
     return true;
 }
 
 bool UART_HalfDuplex::receive_variable_on(){
-    if (state != RECEIVING) return false;
-
     clearIdle();
     
     cfg_.usart->CTLR1 &= ~UART_CTLR1_TE;
 
-    DMA_Cmd(cfg_.tx_dma_channel, DISABLE);
     USART_DMACmd(cfg_.usart, USART_DMAReq_Tx, DISABLE);
-    
+    DMA_Cmd(cfg_.tx_dma_channel, DISABLE);
+
 
     DMA_Cmd(cfg_.rx_dma_channel, DISABLE);
     cfg_.rx_dma_channel->CNTR  = cfg_.rx_buffer_size;
