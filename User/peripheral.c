@@ -10,36 +10,12 @@
 #include "systick_time.h"
 #include "foc_config.h"
 
-void PERIPHS_INIT(void)
-{
-    // GPIO_ProbeIsr_Init();   /* PA6 探针：ADC ISR 窗口（软件翻转） */
-
-    PWR_VDD8_Config(PWR_VDD8_SEL_8V);
-#if (FOC_LINK_MODE == FOC_LINK_TM)
-    printf("[p] VDD8 ok\r\n");
-#endif
-
-    TIM1_Init();
-
-    OPA_Init();
-
-    ADC1_Init();
-
-    TIM3_Init();
-    Simu_SSI_Perips_Init();
-
-    TIM2_Init();
-
-    GPIO_LED_Init();
-    GPIO_Sel_Init();
-}
-
 void UART_Init(uint32_t baudrate){
     GPIO_InitTypeDef  GPIO_InitStructure;
     USART_InitTypeDef USART_InitStructure;
 
     RCC_PB2PeriphClockCmd(RCC_PB2Periph_USART1 | RCC_PB2Periph_GPIOB | RCC_PB2Periph_AFIO, ENABLE);
-    GPIO_PinRemapConfig(GPIO_PartialRemap2_USART1, ENABLE);
+    GPIO_PinRemapConfig(GPIO_PartialRemap2_USART1, ENABLE); //PB6
 
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_30MHz;
@@ -55,6 +31,7 @@ void UART_Init(uint32_t baudrate){
 
     USART_IrDACmd(USART1, DISABLE);
     USART_Init(USART1, &USART_InitStructure);
+    USART_Cmd(USART1, ENABLE);
     USART_HalfDuplexCmd(USART1, ENABLE);
 
     NVIC_SetPriority(USART1_IRQn, (uint8_t)(3 << 6));
@@ -120,17 +97,6 @@ void USART1_DMA_TX_Init(void)
     USART_DMACmd(USART1, USART_DMAReq_Tx, ENABLE);
 }
 
-void GPIO_ProbeIsr_Init(void)
-{
-    GPIO_InitTypeDef GPIO_InitStructure = {0};
-
-    RCC_PB2PeriphClockCmd(RCC_PB2Periph_GPIOA, ENABLE);
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_30MHz;
-    GPIO_Init(GPIOA, &GPIO_InitStructure);
-}
-
 void GPIO_LED_Init(){
     GPIO_InitTypeDef GPIO_InitStructure = {0};
 
@@ -150,6 +116,19 @@ void GPIO_Sel_Init(){
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_30MHz;
     GPIO_Init(GPIOB, &GPIO_InitStructure);
+
+    EXTEN->EXTEN_KEYR &= 0x00000000; // reset;
+    EXTEN->EXTEN_KEYR |= EXTEN_KEY1;
+    EXTEN->EXTEN_KEYR |= EXTEN_KEY2;
+
+    EXTEN->EXTEN_CTLR1 &= ~(EXTEN_UDP_PDE);
+    EXTEN->EXTEN_CTLR1 |= EXTEN_UDP_PUE;
+    EXTEN->EXTEN_CTLR1 &= ~(EXTEN_UDP_AE);
+
+    EXTEN->EXTEN_CTLR1 &= ~(EXTEN_UDP_DAC);
+    EXTEN->EXTEN_CTLR1 |= 0xFFFFFFFF & EXTEN_UDP_DAC; // DAC[5:0] = 111111, Pull-up 15.5kohm
+
+    EXTEN->EXTEN_CTLR1 &= ~(EXTEN_UDP_BUFOE); //enable
 }
 
 void TIM1_Init(){
@@ -389,11 +368,7 @@ void ADC1_Init(){
     ADC_InjectedSequencerLengthConfig(ADC1, FOC_ADC_JL);
     ADC_InjectedChannelConfig(ADC1, ADC_Channel_9,  1, FOC_ADC_SMPL_SEL);
     ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 2, FOC_ADC_SMPL_SEL);
-    // /* 最终修复（2026-08-31）：SCAN=1 后注入按手册顺序转 JSQ(4-JL) 起的全部通道。
-    //  * JL=1(2次) -> 转 JSQ3、JSQ4。放 JSQ3=CH9(U/OPA3)、JSQ4=CH10(V/OPA4)，
-    //  * 即 IDATAR1=CH9、IDATAR2=CH10。采样时间由上面 ChannelConfig 设置。
-    //  * 直接写 ISQR：JL 域 = 通道数-1（与 FOC_ADC_JL 联动，别写死）。 */
-    // ADC1->ISQR = ((FOC_ADC_JL - 1u) << 20) | (9u << 10) | (10u << 15);
+
     ADC_ExternalTrigInjectedConvCmd(ADC1, ENABLE);
 
     ADC_RegularChannelConfig(ADC1, ADC_Channel_15, 1, ADC_SampleTime_23Cycles5); //PA2

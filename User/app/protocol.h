@@ -10,11 +10,6 @@ struct long_cmd_frame{
     uint8_t data[4];
     uint8_t checksum;
 };
-struct short_cmd_frame{
-    uint8_t addr;
-    uint8_t cmd;
-    uint8_t checksum;
-};
 
 enum class DataFrameType : uint8_t {
     REQUIRE_RESEND = 0,
@@ -35,7 +30,6 @@ enum class Cmd : uint8_t {
     GET_SPEED,
     GET_POSITION,
     GET_VBUS,
-    GET_MODE,
     GET_ERROR,
 
     ENABLE,

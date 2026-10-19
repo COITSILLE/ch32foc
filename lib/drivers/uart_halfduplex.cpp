@@ -10,6 +10,7 @@ UART_HalfDuplex::UART_HalfDuplex(const Config& config, CallbackFuncs cbs)
 
 void UART_HalfDuplex::init(){
     assert(cfg_.usart != nullptr);
+    assert(cfg_.usart->CTLR1 & UART_CTLR1_UE);    // USART must be enabled, otherwise no DMA request
     assert(cfg_.usart->CTLR3 & UART_CTLR3_HDSEL); // Ensure half-duplex mode is enabled
     assert(!(cfg_.usart->CTLR1 & (UART_CTLR1_TCIE | UART_CTLR1_IDLEIE))); // Ensure interrupts are disabled. They are managed by this class
     cfg_.usart->CTLR1 &= ~(UART_CTLR1_TE | UART_CTLR1_RE); // disable both

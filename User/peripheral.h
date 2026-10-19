@@ -17,11 +17,12 @@ extern "C" {
 #define UART_DMA_TX_CHANNEL  DMA1_Channel6
 #define UART_DMA_TX_TC_FLAG  DMA1_FLAG_TC6
 #define UART_DMA_RX_CHANNEL  DMA1_Channel7
+#define GPIO_Pin_Port_LED     GPIOA
+#define GPIO_Pin_Port_SEL     GPIOB
 #define GPIO_Pin_LED         GPIO_Pin_7
 #define GPIO_Pin_SEL         GPIO_Pin_0
 
 void UART_Init(uint32_t baudrate);
-void GPIO_ProbeIsr_Init(void);   /* PA6 探针：ADC ISR 窗口（进 ISR 高、出 ISR 低，软件时序） */
 void GPIO_LED_Init();
 void GPIO_Sel_Init();
 void TIM1_Init(void);
