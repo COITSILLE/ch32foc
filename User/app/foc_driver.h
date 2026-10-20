@@ -9,8 +9,13 @@
 #include "motor_params.h"
 #include <cstdint>
 
-static constexpr q24_t CURRENT_SCALE = q24(3.3f / (50e-3f * 8.0f));
+static constexpr float OPA_GAIN = 8.0f;
+static constexpr float EQ_GAIN = OPA_GAIN * (1e3f + 10e3f) / 10e3f; // OPA gain = 8, input resistor = 10k, filter resistor = 1k gain = 8*(1+Rf/Rin) = 8*(1+10k/10k) = 8.8
+static constexpr float SAMPLE_RESISTOR = 50e-3f; // 50mohm
+static constexpr q24_t CURRENT_SCALE = q24(3.3f / (SAMPLE_RESISTOR * EQ_GAIN)); // 50mohm sample resistor
 static constexpr q24_t CURRENT_CALIB_DEFAULT = q24(1986.0f / 4096.0f); // 1.6v v bias
+
+static constexpr q24_t MAX_ABS_CURRENT = q24(1.6f / EQ_GAIN / SAMPLE_RESISTOR);
 
 static constexpr float FOC_DT = 100e-6f;
 
@@ -27,12 +32,14 @@ static constexpr float   SPD_UNIT       = 16.0f;// 2^4 from q7.24 to q11.20
 static constexpr q24_t   INV_SPD_UNIT_Q = q24(1.0f / SPD_UNIT);
 static constexpr q24_t   SPD_DT_DIV     = q24(FOC_DT * SPD_UNIT);
 static constexpr q24_t   SPD_OBS_DT_Q   = q24(OBS_DT * SPD_UNIT);
+static constexpr float   MAX_ABS_SPEED  = (float)Q24_MAX * SPD_UNIT;
 
 static constexpr float   POS_UNIT_Q = 1024.0f;
 static constexpr float   POS_UNIT = M_TWOPI * POS_UNIT_Q; // 2^10 from q7.24 to q17.14, 2pi for 1.0 representing 1 rev
-static constexpr q24_t   INV_POS_UNIT_Q = q24(1.0f / POS_UNIT);
+static constexpr float   INV_POS_UNIT =1.0f / POS_UNIT;
 static constexpr float   POS_LOOP_KP_SCALE = 1 / 1024.0f;
 static constexpr q24_t   POS_LOOP_ERR_SCALE  = q24(1024.0f);
+static constexpr float   MAX_ABS_POS = (float)Q24_MAX * POS_UNIT;
 // note: the two 1024.0f(POS_UNIT_Q and POS_LOOP_ERR_SCALE) is different.
 
 
@@ -77,6 +84,7 @@ public:
         pid_iq.setOutputLimit(vq_limit_v);
     }
     void setCurrentLoopBandWidth(float bw){
+        if (bw <= 0) return;
         constexpr float k_current = R_s / L_s;
         float kp_iq = M_TWOPI * L_s * bw;;
         float kp_id = kp_iq * 0.8f;
@@ -85,16 +93,43 @@ public:
         pid_id.setKp(q24(kp_id));
         pid_id.setKiDt(q24(kp_id * k_current * FOC_DT));
     }
-    void setIdRef(q24_t i_d_a) { pid_id.setTarget(i_d_a); }
-    void setIqRef(q24_t i_q_a) { pid_iq.setTarget(i_q_a); }
+    void setIdRef(q24_t i_d_a) {
+        pid_id.setTarget(i_d_a); 
+    }
+    void setIqRef(q24_t i_q_a) {
+        if (i_q_a > MAX_ABS_CURRENT) i_q_a = MAX_ABS_CURRENT;
+        else if (i_q_a < -MAX_ABS_CURRENT) i_q_a = -MAX_ABS_CURRENT;
+        pid_iq.setTarget(i_q_a);
+    }
 
-    void setSpeedLoopBandWidth(float bw) { spd_params_.bw = bw; updateSpeedLoopGains(); }
-    void setSpeedLoopDamping(float zeta) { spd_params_.zeta = zeta; updateSpeedLoopGains(); }
-    void setSpeedLoopBandWidth(float bw, float zeta) { spd_params_ = {bw, zeta}; updateSpeedLoopGains(); }
-    void setSpeedLoopLimit(q24_t iq_limit_a) { pid_spd.setOutputLimit(iq_limit_a); }
-    void setSpeedRef(float w_rad_s) { pid_spd.setTarget(w_rad_s * INV_SPD_UNIT_Q); }
+    void setSpeedLoopBandWidth(float bw) {
+        if (bw <= 0) return;
+        spd_params_.bw = bw;
+        updateSpeedLoopGains(); 
+    }
+    void setSpeedLoopDamping(float zeta) {
+        if (zeta <= 0) return;
+        spd_params_.zeta = zeta;
+        updateSpeedLoopGains();
+    }
+    void setSpeedLoopBandWidth(float bw, float zeta) {
+        if (bw <= 0 || zeta <= 0) return;
+        spd_params_ = {bw, zeta};
+        updateSpeedLoopGains();
+    }
+    void setSpeedLoopLimit(q24_t iq_limit_a) {
+        if (iq_limit_a < 0) return;
+        if (iq_limit_a > MAX_ABS_CURRENT) iq_limit_a = MAX_ABS_CURRENT;
+        pid_spd.setOutputLimit(iq_limit_a);
+    }
+    void setSpeedRef(float w_rad_s) { 
+        if (w_rad_s > MAX_ABS_SPEED) w_rad_s = MAX_ABS_SPEED;
+        else if (w_rad_s < -MAX_ABS_SPEED) w_rad_s = -MAX_ABS_SPEED;
+        pid_spd.setTarget(w_rad_s * INV_SPD_UNIT_Q);
+    }
 
     void setPosLoopBandWidth(float bw){
+        if (bw <= 0) return;
         float wn_exp_pos = M_TWOPI * bw;
         float kp_pos = wn_exp_pos;
         q24_t kp_pos_scaled = q24(kp_pos * POS_UNIT * POS_LOOP_KP_SCALE / SPD_UNIT);
@@ -102,6 +137,8 @@ public:
 
     }
     void setPosLoopLimit(float w_limit_radps) {
+        if (w_limit_radps < 0) return;
+        if (w_limit_radps > MAX_ABS_SPEED) w_limit_radps = MAX_ABS_SPEED;
         pid_pos.setOutputLimit(q24(w_limit_radps / SPD_UNIT)); // rad/(s*16)
     }
 
@@ -110,7 +147,7 @@ public:
     }
 
     void setPosRefFloat(float pos_rad) { 
-        pos_ref_ = q24(pos_rad * 1.0f / POS_UNIT);
+        pos_ref_ = q24(pos_rad * INV_POS_UNIT);
     }
 
     void setCurrentFiltCutoffFreq(float cutoff_freq) {
@@ -129,6 +166,7 @@ public:
         eso_coeffs.l2 = q24(l2 * SPD_UNIT * FOC_DT);
     }
     void setEsoBandWidth(float bw) {
+        if (bw <= 0) return;
         float wn_exp_eso = M_TWOPI * bw;
         float l1 = 2.0f * wn_exp_eso; //appro
         float l2 = wn_exp_eso * wn_exp_eso * J / K_t;
@@ -139,9 +177,22 @@ public:
         abfilt_coeffs.a = q24(a * OBS_DT);
         abfilt_coeffs.b = q24(b * OBS_DT / (32.0f * SPD_UNIT));
     }
-    void setSpeedABFiltBandWidth(float bw) { abfilt_params_.bw = bw; updateSpeedABFiltCoeffs(); }
-    void setSpeedABFiltDamping(float zeta) { abfilt_params_.zeta = zeta; updateSpeedABFiltCoeffs(); }
-    void setSpeedABFiltBandWidth(float bw, float zeta) { abfilt_params_ = {bw, zeta}; updateSpeedABFiltCoeffs(); }
+    void setSpeedABFiltBandWidth(float bw) {
+        if (bw <= 0) return;
+        abfilt_params_.bw = bw;
+        updateSpeedABFiltCoeffs();
+    }
+    void setSpeedABFiltDamping(float zeta) {
+        if (zeta < 0) return;
+        abfilt_params_.zeta = zeta;
+        updateSpeedABFiltCoeffs();
+    }
+    void setSpeedABFiltBandWidth(float bw, float zeta) {
+        if (bw <= 0) return;
+        if (zeta < 0) return;
+        abfilt_params_ = {bw, zeta};
+        updateSpeedABFiltCoeffs();
+    }
 
     void setDisturbFiltCutoffFreq(float cutoff_freq) {
         disturb_filt_coeff_ = q24(1.0f - 1.0f / (1.0f + 2.0f * M_PI * cutoff_freq * FOC_DT));
@@ -227,7 +278,6 @@ private:
         float zeta;
     } abfilt_params_ = {0.0f, 0.9f};
 
-    /* setBandWidth / setDamping 只改一个字段，统一在这里由参数重算增益 */
     void updateSpeedLoopGains(){
         float wn = M_TWOPI * spd_params_.bw;
         pid_spd.setKp(q24(2.0f * spd_params_.zeta * wn * J / K_t * SPD_UNIT));

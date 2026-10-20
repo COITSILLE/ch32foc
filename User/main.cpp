@@ -534,8 +534,6 @@ void cmd_execute(bool is_valid, uint8_t tag, uint8_t cmd, uint32_t data)
     }
     else{
         switch ((Cmd)cmd) {
-            case Cmd::NOP:
-                return;
             case Cmd::SET_MODE:
                 flash_save_data.cfg.loop_mode = static_cast<FocLoopMode>(data);
                 g_foc.setLoopMode(flash_save_data.cfg.loop_mode);
@@ -592,19 +590,19 @@ void cmd_execute(bool is_valid, uint8_t tag, uint8_t cmd, uint32_t data)
                 n = 3;
                 break;
             case Cmd::GET_CURRENT:
-                v[0] = (uint32_t)g_foc.getIq().val;
+                v[0] = bit_cast(uint32_t, (float)g_foc.getIq());
                 n = 1;
                 break;
             case Cmd::GET_SPEED:
-                v[0] = (uint32_t)g_foc.getMechSpeed().val;
+                v[0] = bit_cast(uint32_t, (float)g_foc.getMechSpeed() * SPD_UNIT);
                 n = 1;
                 break;
             case Cmd::GET_POSITION:
-                v[0] = (uint32_t)g_foc.getPosFb().val;
+                v[0] = bit_cast(uint32_t, (float)g_foc.getPosFb() * POS_UNIT);
                 n = 1;
                 break;
             case Cmd::GET_VBUS:
-                v[0] = (uint32_t)g_foc.getVbus().val;
+                v[0] = bit_cast(uint32_t, (float)g_foc.getVbus());
                 n = 1;
                 break;
             case Cmd::ENABLE:
@@ -615,15 +613,15 @@ void cmd_execute(bool is_valid, uint8_t tag, uint8_t cmd, uint32_t data)
                 g_foc.disable();
                 n = 1;
                 break;
-            
+            case Cmd::NOP:
             default:
                 n = 1;
                 break;
         }
         if (n == 3){
-            v[0] = (uint32_t)g_foc.getIq().val;
-            v[1] = (uint32_t)g_foc.getMechSpeed().val;
-            v[2] = (uint32_t)g_foc.getPosFb().val;
+            v[0] = bit_cast(uint32_t, (float)g_foc.getIq());
+            v[1] = bit_cast(uint32_t, (float)g_foc.getMechSpeed() * SPD_UNIT);
+            v[2] = bit_cast(uint32_t, (float)g_foc.getPosFb() * POS_UNIT);
         }
         /* DEBUG COMMANDS */
         if (BOOT_MODE == DEBUG_){
@@ -670,7 +668,8 @@ void cmd_execute(bool is_valid, uint8_t tag, uint8_t cmd, uint32_t data)
     g_protocol_tx.setData(reinterpret_cast<const uint8_t*>(v), n * (int)sizeof(uint32_t));
 
     const int len = g_protocol_tx.getTxFrame(tx_buffer);
-    g_uart.transmit_async(tx_buffer, (uint16_t)len);
+    bool trans_ok = g_uart.transmit_async(tx_buffer, (uint16_t)len);
+    if (!trans_ok) g_protocol_rx.cpltSend(); // busy, discard this frame
 }
 
 void uart_tx_cplt_callback(void)

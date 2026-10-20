@@ -194,6 +194,8 @@ void FocDriver::setLoopMode(FocLoopMode mode){
             pos_ref_ = mech_ang_cont_;
             pid_spd.setTarget(Q24_ZERO);
             break;
+        default:
+            break;
     }
 
     this->loop_mode_ = mode;
