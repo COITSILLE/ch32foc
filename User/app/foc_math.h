@@ -83,6 +83,8 @@ private:
     q24_t ki_dt_ = Q24_ZERO;
     q24_t k_ff_ = Q24_ZERO;
     q24_t out_lim_ = Q24_ZERO;
+
+    
 };
 
 #endif

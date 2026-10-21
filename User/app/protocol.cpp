@@ -3,6 +3,8 @@
 #include <cstring>
 #include "systick_time.h"
 
+#define UPDATE_TIMEOUT do{timeout_stamp = Systick_getMsTick();}while(0)
+
 void DeviceProtocolRx::processCmdFrame(uint8_t rx_byte){
     switch(state){
         case (IDLE):
@@ -10,6 +12,7 @@ void DeviceProtocolRx::processCmdFrame(uint8_t rx_byte){
             memset(&last_cmd_frame_, 0, sizeof(last_cmd_frame_));
             last_cmd_frame_.addr = rx_byte;
             do_crc(&last_cmd_frame_.checksum, rx_byte);
+                
             break;
         case (CMD) : {
             data_index = 0;
@@ -22,6 +25,7 @@ void DeviceProtocolRx::processCmdFrame(uint8_t rx_byte){
                 state = DATA;
             }
             do_crc(&last_cmd_frame_.checksum, rx_byte);
+            UPDATE_TIMEOUT;
             break;
         }
         case (DATA):
@@ -32,6 +36,7 @@ void DeviceProtocolRx::processCmdFrame(uint8_t rx_byte){
                 state = CHECKSUM;
                 memcpy(last_cmd_frame_.data, data_buf, 4);
             }
+            UPDATE_TIMEOUT;
             break;
         case (CHECKSUM): {
             bool crc_ok = (rx_byte == last_cmd_frame_.checksum);
@@ -50,11 +55,18 @@ void DeviceProtocolRx::processCmdFrame(uint8_t rx_byte){
             else{
                 state = IDLE;
             }
+            UPDATE_TIMEOUT;
             break;
         }
         case (AWAITS_SEND):
         default:
             break;
+    }
+}
+
+void DeviceProtocolRx::updateTimeoutState(){
+    if (Systick_getMsTick() - timeout_stamp > 200){
+        state = IDLE;
     }
 }
 

@@ -2,7 +2,7 @@
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -34,16 +34,16 @@
       "d:/Documents/ch32foc/learn/foc/Core/core_riscv.c",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\Core\\core_riscv.c"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -75,16 +75,16 @@
       "d:/Documents/ch32foc/learn/foc/Debug/debug.c",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\Debug\\debug.c"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -116,16 +116,16 @@
       "d:/Documents/ch32foc/learn/foc/Peripheral/src/ch32m030_adc.c",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\Peripheral\\src\\ch32m030_adc.c"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -157,16 +157,16 @@
       "d:/Documents/ch32foc/learn/foc/Peripheral/src/ch32m030_dbgmcu.c",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\Peripheral\\src\\ch32m030_dbgmcu.c"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -198,16 +198,16 @@
       "d:/Documents/ch32foc/learn/foc/Peripheral/src/ch32m030_dma.c",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\Peripheral\\src\\ch32m030_dma.c"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -239,16 +239,16 @@
       "d:/Documents/ch32foc/learn/foc/Peripheral/src/ch32m030_exti.c",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\Peripheral\\src\\ch32m030_exti.c"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -280,16 +280,16 @@
       "d:/Documents/ch32foc/learn/foc/Peripheral/src/ch32m030_flash.c",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\Peripheral\\src\\ch32m030_flash.c"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -321,16 +321,16 @@
       "d:/Documents/ch32foc/learn/foc/Peripheral/src/ch32m030_gpio.c",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\Peripheral\\src\\ch32m030_gpio.c"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -362,16 +362,16 @@
       "d:/Documents/ch32foc/learn/foc/Peripheral/src/ch32m030_i2c.c",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\Peripheral\\src\\ch32m030_i2c.c"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -403,16 +403,16 @@
       "d:/Documents/ch32foc/learn/foc/Peripheral/src/ch32m030_opa.c",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\Peripheral\\src\\ch32m030_opa.c"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -444,16 +444,16 @@
       "d:/Documents/ch32foc/learn/foc/Peripheral/src/ch32m030_pwr.c",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\Peripheral\\src\\ch32m030_pwr.c"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -485,16 +485,16 @@
       "d:/Documents/ch32foc/learn/foc/Peripheral/src/ch32m030_rcc.c",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\Peripheral\\src\\ch32m030_rcc.c"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -526,16 +526,16 @@
       "d:/Documents/ch32foc/learn/foc/Peripheral/src/ch32m030_spi.c",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\Peripheral\\src\\ch32m030_spi.c"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -567,16 +567,16 @@
       "d:/Documents/ch32foc/learn/foc/Peripheral/src/ch32m030_tim.c",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\Peripheral\\src\\ch32m030_tim.c"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -608,16 +608,16 @@
       "d:/Documents/ch32foc/learn/foc/Peripheral/src/ch32m030_uart.c",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\Peripheral\\src\\ch32m030_uart.c"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -649,16 +649,16 @@
       "d:/Documents/ch32foc/learn/foc/Peripheral/src/ch32m030_wwdg.c",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\Peripheral\\src\\ch32m030_wwdg.c"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-g++.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-g++.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -694,20 +694,20 @@
       "d:/Documents/ch32foc/learn/foc/User/app/foc_driver.cpp",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0/riscv-wch-elf"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0/riscv-wch-elf"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\User\\app\\foc_driver.cpp"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-g++.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-g++.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -743,20 +743,20 @@
       "d:/Documents/ch32foc/learn/foc/User/app/protocol.cpp",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0/riscv-wch-elf"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0/riscv-wch-elf"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\User\\app\\protocol.cpp"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -788,16 +788,16 @@
       "d:/Documents/ch32foc/learn/foc/User/ch32m030_it.c",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\User\\ch32m030_it.c"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-g++.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-g++.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -833,20 +833,20 @@
       "d:/Documents/ch32foc/learn/foc/User/main.cpp",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0/riscv-wch-elf"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0/riscv-wch-elf"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\User\\main.cpp"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -878,16 +878,16 @@
       "d:/Documents/ch32foc/learn/foc/User/peripheral.c",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\User\\peripheral.c"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -919,16 +919,16 @@
       "d:/Documents/ch32foc/learn/foc/User/system_ch32m030.c",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\User\\system_ch32m030.c"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-g++.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-g++.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -964,20 +964,20 @@
       "d:/Documents/ch32foc/learn/foc/lib/device/mt6701_ssi.cpp",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0/riscv-wch-elf"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0/riscv-wch-elf"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\lib\\device\\mt6701_ssi.cpp"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-g++.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-g++.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -1013,20 +1013,20 @@
       "d:/Documents/ch32foc/learn/foc/lib/drivers/simu_ssi.cpp",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0/riscv-wch-elf"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0/riscv-wch-elf"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\lib\\drivers\\simu_ssi.cpp"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-g++.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-g++.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -1062,20 +1062,20 @@
       "d:/Documents/ch32foc/learn/foc/lib/drivers/uart_halfduplex.cpp",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0/riscv-wch-elf"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0/riscv-wch-elf"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\lib\\drivers\\uart_halfduplex.cpp"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-g++.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-g++.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -1111,20 +1111,20 @@
       "d:/Documents/ch32foc/learn/foc/lib/utils/math/basic/iqmath.cpp",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0/riscv-wch-elf"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0/riscv-wch-elf"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\lib\\utils\\math\\basic\\iqmath.cpp"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -1156,16 +1156,16 @@
       "d:/Documents/ch32foc/learn/foc/lib/utils/math/basic/smath.c",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\lib\\utils\\math\\basic\\smath.c"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-g++.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-g++.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -1201,20 +1201,20 @@
       "d:/Documents/ch32foc/learn/foc/lib/utils/math/extension/alg_pid.cpp",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0/riscv-wch-elf"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include/c++/12.2.0/riscv-wch-elf"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\lib\\utils\\math\\extension\\alg_pid.cpp"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -1246,16 +1246,16 @@
       "d:/Documents/ch32foc/learn/foc/lib/utils/sstrtotype.c",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\lib\\utils\\sstrtotype.c"
   },
   {
     "directory": "d:\\Documents\\ch32foc\\learn\\foc\\obj",
     "arguments": [
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gcc.exe",
       "-march=rv32imc_zba_zbb_zbc_zbs",
       "-mabi=ilp32",
       "-Og",
@@ -1287,9 +1287,9 @@
       "d:/Documents/ch32foc/learn/foc/lib/utils/timestamp/systick_time.c",
       "--target=riscv32-unknown-elf",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/riscv-wch-elf/include",
       "-isystem",
-      "D:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
+      "D:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/lib/gcc/riscv-wch-elf/12.2.0/include"
     ],
     "file": "d:\\Documents\\ch32foc\\learn\\foc\\lib\\utils\\timestamp\\systick_time.c"
   }

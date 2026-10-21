@@ -26,7 +26,6 @@ void FocDriver::outputVoltage(q24_t u, q24_t v, q24_t w){
 }
 
 void FocDriver::updateCurrLoop(){
-    if (calibrating) return; 
     uint16_t iu_adc = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_1);
     uint16_t iv_adc = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_2);
     this->current.u = -q24_mul_w(q24_sub_w(q24_t::from_raw(iu_adc << 12), current_calib.u), CURRENT_SCALE);   /* 减校准零偏 */
@@ -148,7 +147,6 @@ void FocDriver::observeDisturb(q24_t mech_speed_meas){
 }
 
 void FocDriver::updateSpeedLoop(){
-    if (calibrating) return;
     if (loop_mode_ == FocLoopMode::Current) return;
     if (loop_mode_ == FocLoopMode::Pos){
         pid_spd.setTarget(speed_loop_cmd);
@@ -161,7 +159,6 @@ void FocDriver::updateSpeedLoop(){
 }
 
 void FocDriver::updatePosLoop(){
-    if (calibrating) return;
     if (loop_mode_ != FocLoopMode::Pos) return;
 
 

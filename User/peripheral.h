@@ -10,6 +10,10 @@
 #define FOC_ADC_SMPL_SEL    ADC_SampleTime_5Cycles5   /* 给 ADC 用的采样时间选择 */
 #define FOC_ADC_ADCPRE_SEL  RCC_HB_Div8                /* 给 RCC 用的 ADC 时钟分频选择 */
 
+#define VBUS_MIN_V  8.5f
+#define VBUS_MAX_V  21.0f
+#define VBUS_FULL   (3.3f * (14e3f + 100e3f) / 14e3f)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -53,6 +57,7 @@ void OPA_Init(void);
 void ADC1_Init(void);
 void USART1_DMA_TX_Init(void);   /* 闭环 1kHz DMA 遥测：DMA1_Channel6(=USART1_TX) + TC 中断 */
 
+void ADC1_ResetVbusIrq();
 #ifdef __cplusplus
 }
 #endif

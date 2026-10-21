@@ -21,6 +21,9 @@ struct alignas(4) motor_configs{
     float speed_loop_limit;
     float pos_loop_limit;
     q24_t zero_ang_calib;
+
+    float ovc_threshold;
+    uint32_t ovc_timeout_ms;
 };
 
 struct alignas(4) flash_data{
@@ -31,7 +34,7 @@ struct alignas(4) flash_data{
     uint8_t done;
 };
 
-#define FLASH_DATA_VERSION 0x1u
+#define FLASH_DATA_VERSION 0x2u // 2026.10.21
 #define FLASH_DATA_DONE_SIGN 0xA5u
 
 const motor_configs motor_cfg_default = {
@@ -49,6 +52,8 @@ const motor_configs motor_cfg_default = {
     .speed_loop_limit = 1.80f,
     .pos_loop_limit = 60.0f,
     .zero_ang_calib = Q24_ZERO,
+    .ovc_threshold = 2.0f,
+    .ovc_timeout_ms = 3000u,
 };
 
 const flash_data flash_data_default = {
@@ -57,13 +62,5 @@ const flash_data flash_data_default = {
     .baudrate = 115200,
     .cfg = motor_cfg_default,
     .done = FLASH_DATA_DONE_SIGN
-};
-
-enum MotorErrors {
-    ERR_OVER_VOLTAGE = 1u << 1,
-    ERR_UNDER_VOLTAGE = 1u << 2,
-    ERR_OVER_CURRENT = 1u << 3,
-    ERR_READ_FLASH = 1u << 4,
-    ERR_READ_ANG = 1u << 5,
 };
 

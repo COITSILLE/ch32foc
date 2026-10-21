@@ -30,7 +30,7 @@ enum class Cmd : uint8_t {
     GET_SPEED,
     GET_POSITION,
     GET_VBUS,
-    GET_ERROR,
+    GET_SYSREG,
 
     ENABLE,
     DISABLE,
@@ -47,6 +47,7 @@ enum class Cmd : uint8_t {
     SET_ESO_BW,
     SET_ABFILT_BW,
     SET_ABFILT_ZETA,
+    CLEAR_FAULT,
 };
 
 enum class CmdDebug : uint8_t {
@@ -60,6 +61,9 @@ enum class CmdDebug : uint8_t {
     SET_DEFAULT_CONFIG,
 
     SAVE_CONFIG,
+
+    SET_OVC_THRESHOLD,
+    SET_OVC_TIMEOUT,
 };
 
 constexpr uint8_t GENERIC_DEVICE_ADDR = 0x00;
@@ -75,6 +79,8 @@ public:
     void setAddr(uint8_t addr) { device_addr_ = addr; }
 
     void processCmdFrame(uint8_t rx_byte);
+
+    void updateTimeoutState();
 
     void cpltSend() { if (state == AWAITS_SEND) state = IDLE; }
     void rcvIdle() { if (state > IDLE) state = IDLE; } // reset the state machine

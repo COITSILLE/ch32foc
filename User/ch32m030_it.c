@@ -26,6 +26,7 @@ void USART1_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 void TIM2_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 
 void ADC_JEOC_irqHandler(void);
+void ADC_VBUS_irqHandler(void);
 void updateEncoder(void);
 void ssi_irqHandler();
 void task_outer_loop(void);
@@ -42,6 +43,8 @@ void uart_irqHandler(void);
  */
 void NMI_Handler(void)
 {
+    TIM1->BDTR &= ~TIM_MOE;
+    NVIC_SystemReset();
     while(1)
     {
         __NOP();
@@ -57,6 +60,7 @@ void NMI_Handler(void)
  */
 void HardFault_Handler(void)
 {
+    TIM1->BDTR &= ~TIM_MOE;
     NVIC_SystemReset();
     while (1)
     {
@@ -82,12 +86,8 @@ void DMA1_Channel3_IRQHandler(void)
  */
 void ADC_IRQHandler(void)
 {
-    if (ADC_GetITStatus(ADC1, ADC_IT_JEOC))
-    {
-        ADC_JEOC_irqHandler();
-    }
-
-    ADC_ClearITPendingBit(ADC1, ADC_IT_JEOC);
+    ADC_VBUS_irqHandler();
+    ADC_JEOC_irqHandler();
 }
 
 void USART1_IRQHandler(void)

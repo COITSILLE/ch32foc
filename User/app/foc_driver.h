@@ -10,7 +10,7 @@
 #include <cstdint>
 
 static constexpr float OPA_GAIN = 8.0f;
-static constexpr float EQ_GAIN = OPA_GAIN * (1e3f + 10e3f) / 10e3f; // OPA gain = 8, input resistor = 10k, filter resistor = 1k gain = 8*(1+Rf/Rin) = 8*(1+10k/10k) = 8.8
+static constexpr float EQ_GAIN = OPA_GAIN * (1e3f + 10e3f) / 10e3f; // OPA gain = 8, input resistor = 10k, filter resistor = 1k
 static constexpr float SAMPLE_RESISTOR = 50e-3f; // 50mohm
 static constexpr q24_t CURRENT_SCALE = q24(3.3f / (SAMPLE_RESISTOR * EQ_GAIN)); // 50mohm sample resistor
 static constexpr q24_t CURRENT_CALIB_DEFAULT = q24(1986.0f / 4096.0f); // 1.6v v bias
@@ -60,8 +60,10 @@ public:
         en_ = true;
     }
     void disable() { 
+        if (!en_) return;
         en_ = false;
         reset();
+        inv_set_duty(0x8000, 0x8000, 0x8000);
     }
 
     void calibCurrent();
@@ -257,7 +259,7 @@ public:
 
         __enable_irq();
     }
-    
+    volatile bool en_ = false;
 private:
     MT6701_SSI& encoder;
 
@@ -266,8 +268,6 @@ private:
     foc_pi_controller pid_iq;
     foc_pi_controller pid_spd;
     foc_pi_controller pid_pos;
-
-    volatile bool en_ = false;
 
     struct{
         float bw;

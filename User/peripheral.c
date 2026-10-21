@@ -376,6 +376,9 @@ void ADC1_Init(){
     ADC_Cmd(ADC1, ENABLE);
     ADC_MovingAverageCmd(ADC1, ENABLE);
     ADC_MovingAverageWindowSizeConfig(ADC1, ADC_MovingWindow_Size_32);
+    uint16_t avg_low_threshold = (uint16_t)(1.0f * (1 << 12) / VBUS_FULL + 0.5f); // dvbus < -1.0V
+    uint16_t avg_high_threshold = (uint16_t)(0.8f * (1 << 12) / VBUS_FULL + 0.5f); // dvbus > 0.8v
+    ADC_AverageValueThresholdsConfig(ADC1, avg_high_threshold, avg_low_threshold);
 
     ADC_ResetCalibration(ADC1);
     while(ADC_GetResetCalibrationStatus(ADC1));
@@ -389,4 +392,22 @@ void ADC1_Init(){
 
     // Here the 10kHz interrupt is already on, making the sequence of initialization fragile, but it has to be this way for the current loop to work
     ADC_ITConfig(ADC1, ADC_IT_JEOC, ENABLE);
+
+    ADC_AnalogWatchdogCmd(ADC1, ADC_AnalogWatchdog_SingleRegEnable);
+    ADC_AnalogWatchdogSingleChannelConfig(ADC1, ADC_Channel_15);
+
+    uint16_t awg_low_threshold = (uint16_t)(VBUS_MIN_V * (1 << 12) / VBUS_FULL + 0.5f);
+    uint16_t awg_high_threshold = (uint16_t)(VBUS_MAX_V * (1 << 12) / VBUS_FULL + 0.5f);
+    ADC_AnalogWatchdogThresholdsConfig(ADC1, awg_high_threshold, awg_low_threshold);
+}
+
+void ADC1_ResetVbusIrq(){
+    ADC_ClearITPendingBit(ADC1, ADC_IT_AVG_OV);
+    ADC_ClearITPendingBit(ADC1, ADC_IT_AVG_DN);
+    ADC_ClearITPendingBit(ADC1, ADC_IT_AWD_OV);
+    ADC_ClearITPendingBit(ADC1, ADC_IT_AWD_DN);
+    ADC_ITConfig(ADC1, ADC_IT_AVG_OV, ENABLE);
+    ADC_ITConfig(ADC1, ADC_IT_AVG_DN, ENABLE);
+    ADC_ITConfig(ADC1, ADC_IT_AWD_OV, ENABLE);
+    ADC_ITConfig(ADC1, ADC_IT_AWD_DN, ENABLE);
 }
