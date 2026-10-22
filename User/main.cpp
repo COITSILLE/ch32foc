@@ -46,6 +46,7 @@ extern "C" void updateEncoder(void);
 static void task_vbus(void);
 static void task_state(void);
 extern "C" void task_outer_loop(void);
+static void task_led(void);
 static bool loadConfigFromFlash(flash_data* fdata);
 static void applyMotorConfig(motor_configs* cfg);
 static void saveConfigToFlash(flash_data* fdata);
@@ -96,6 +97,24 @@ enum boot_mode {
     DEBUG_,
 } BOOT_MODE = NORMAL_;
 
+enum class UiStates : uint8_t {
+    IDLE = 0,
+    INPUT,
+    CALIB_POS,
+    SAVE_CONFIG,
+} ui_state = UiStates::IDLE;
+
+enum class LedMaster : uint8_t {
+    COMM = 0,
+    ADDR,
+} led_master = LedMaster::COMM;
+
+enum class LedAddrStates : uint8_t {
+    OFF = 0,
+    ON,
+    GAP,
+} led_addr_state = LedAddrStates::OFF;
+
 SimuSSI<24>::Config ssi_cfg = {
     .tim = SIMU_SSI_TIM,
     .clk_pin = SSI_CLK_PIN,
@@ -144,6 +163,8 @@ static uint8_t tx_buffer[16];
 
 
 static volatile uint32_t g_tick_count = 0;
+#define LED_ON do{GPIO_ResetBits(GPIOA, GPIO_Pin_LED);}while(0)
+#define LED_OFF do{GPIO_SetBits(GPIOA, GPIO_Pin_LED);}while(0)
 
 /* 两种模式共用：故障打印去重 */
 #if (FOC_LINK_MODE == FOC_LINK_TM)
@@ -312,8 +333,9 @@ int main(void)
 
         task_protocol();
 
-        task_state();    /* 50ms（编码器由控制环 2kHz 节拍驱动） */
+        task_state();
         
+        task_led();
     }
 }
 
@@ -493,12 +515,11 @@ update_vbus:
 
 static void task_state(void)
 {
-    NON_BLOCK_DELAY(50);
+    NON_BLOCK_DELAY(10);
 
     static uint32_t ovc_timestamp = 0;
     static bool may_ovc = false;
 
-    
     switch (sys_reg.state) {
         case SysStates::INIT:
             inv_set_duty(0x8000, 0x8000, 0x8000);
@@ -545,6 +566,115 @@ static void task_state(void)
     }
 
     g_protocol_rx.updateTimeoutState();
+
+    static int32_t last_turn = g_encoder.readAngleTurns();
+    static uint32_t input_timestamp = 0;
+    if (sys_reg.state == SysStates::RUN && BOOT_MODE == DEBUG_ && !g_foc.en_){
+        int32_t now_turn = g_encoder.readAngleTurns();
+        int32_t dturn = now_turn - last_turn;
+
+        switch (ui_state) {
+            case UiStates::IDLE:
+                if (ABS(dturn) > 1) {
+                    ui_state = UiStates::INPUT;
+                    led_master = LedMaster::ADDR;
+                    input_timestamp = Systick_getMsTick();
+                    last_turn = now_turn;
+                }
+                break;
+            case UiStates::INPUT:
+                if (dturn > 0){
+                    if (flash_save_data.addr < 7) flash_save_data.addr++;
+                    input_timestamp = Systick_getMsTick();
+                    last_turn = now_turn;
+                }
+                else if (dturn < 0){
+                    if (flash_save_data.addr > 0)      flash_save_data.addr--;
+                    input_timestamp = Systick_getMsTick();
+                    last_turn = now_turn;
+                }
+                if (Systick_getMsTick() - input_timestamp > 4000){
+                    ui_state = UiStates::CALIB_POS;
+                    input_timestamp = Systick_getMsTick();
+                }
+                break;
+            case UiStates::CALIB_POS: {
+                q24_t zero_pos = g_foc.calibZeroPos();
+                flash_save_data.cfg.zero_ang_calib = zero_pos;
+                ui_state = UiStates::SAVE_CONFIG;
+            }
+            case UiStates::SAVE_CONFIG:
+                saveConfigToFlash(&flash_save_data);
+                g_protocol_rx.setAddr(flash_save_data.addr);
+                last_turn = g_encoder.readAngleTurns();
+                ui_state = UiStates::IDLE;
+                led_master = LedMaster::COMM;
+                break;
+        }   
+    }
+    else{
+        last_turn = g_encoder.readAngleTurns();
+        if (ui_state != UiStates::IDLE){
+            ui_state = UiStates::IDLE;
+            led_master = LedMaster::COMM;
+        }
+    }
+
+    if (BOOT_MODE == NORMAL_){
+        bool sel_pin = GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_0) == Bit_RESET;
+        if (sel_pin){
+            led_master = LedMaster::ADDR;
+        }
+        else{
+            led_master = LedMaster::COMM;
+        }
+    }
+}
+
+static void task_led(void)
+{
+    NON_BLOCK_DELAY(200);
+    static uint8_t now_addr_cnt = 0;
+    static uint8_t gap_cnt = 0;
+    static LedMaster last_led_master = LedMaster::COMM;
+    static uint8_t now_addr = 0;
+    if (led_master != last_led_master){
+        last_led_master = led_master;
+        now_addr_cnt = 0;
+        led_addr_state = LedAddrStates::OFF;
+        now_addr = flash_save_data.addr;
+        LED_OFF;
+        return;
+    }
+    if (led_master == LedMaster::ADDR){
+        switch (led_addr_state) {
+            case LedAddrStates::OFF:
+                led_addr_state = LedAddrStates::ON;
+                LED_ON;
+                break;
+            case LedAddrStates::ON:
+                now_addr_cnt++;
+                if (now_addr_cnt >= (now_addr ? now_addr : 8)) { // if addr=0x00, blink 8 times
+                    now_addr_cnt = 0;
+                    led_addr_state = LedAddrStates::GAP;
+                    gap_cnt = 0;
+                }
+                else{
+                    led_addr_state = LedAddrStates::OFF;
+                }
+                LED_OFF;
+                break;
+            case LedAddrStates::GAP:
+                gap_cnt++;
+                if (gap_cnt > 2) {
+                    gap_cnt = 0;
+                    now_addr = flash_save_data.addr;
+                    led_addr_state = LedAddrStates::OFF;
+                }
+                LED_OFF;
+                break;
+        }
+    }
 }
 
 #if (FOC_LINK_MODE == FOC_LINK_TM)
@@ -607,7 +737,7 @@ static void tm_tx_frame(void)
 #if (FOC_LINK_MODE == FOC_LINK_PROTOCOL)
 static void task_protocol(void)
 {
-    NON_BLOCK_DELAY(1);
+    // NON_BLOCK_DELAY(1);
     uint8_t byte;
     while (g_uart.readByte(byte)){
         g_protocol_rx.processCmdFrame(byte);
@@ -616,14 +746,23 @@ static void task_protocol(void)
 
 void cmd_execute(bool is_valid, uint8_t tag, uint8_t cmd, uint32_t data)
 {
-    GPIO_WriteBit(GPIOA, GPIO_Pin_LED, Bit_RESET);
+    if (led_master == LedMaster::COMM) LED_ON;
     uint32_t v[3];
     memset(v, 0, sizeof(v));
     memset(tx_buffer, 0, sizeof(tx_buffer));
+
+    auto fill_feedback = [&v]{
+        v[0] = bit_cast(uint32_t, (float)g_foc.getIq());
+        v[1] = bit_cast(uint32_t, (float)g_foc.getMechSpeed() * SPD_UNIT);
+        v[2] = bit_cast(uint32_t, (float)g_foc.getPosFb() * POS_UNIT);
+    };
+
     int n = 1;
+    DataFrameType type = DataFrameType::SHORT;
+    bool rejected = false;
     if (!is_valid){
         n = 3;
-        g_protocol_tx.setType(DataFrameType::REQUIRE_RESEND);
+        type = DataFrameType::REQUIRE_RESEND;
     }
     else{
         switch ((Cmd)cmd) {
@@ -700,10 +839,12 @@ void cmd_execute(bool is_valid, uint8_t tag, uint8_t cmd, uint32_t data)
                 break;
             case Cmd::ENABLE:
                 if (sys_reg.state == SysStates::RUN) g_foc.enable();
+                else rejected = true;
                 n = 1;
                 break;
             case Cmd::DISABLE:
                 if (sys_reg.state == SysStates::RUN) g_foc.disable();
+                else rejected = true;
                 n = 1;
                 break;
             case Cmd::GET_SYSREG:
@@ -713,21 +854,19 @@ void cmd_execute(bool is_valid, uint8_t tag, uint8_t cmd, uint32_t data)
             case Cmd::CLEAR_FAULT:
                 if (sys_reg.state == SysStates::FAULT) {
                     sys_reg.fault.fault = 0;
+                    sys_reg.warning.warning = 0;
                     inv_set_duty(0x8000, 0x8000, 0x8000);
                     sys_reg.state = SysStates::RUN;
                     ADC1_ResetVbusIrq();
                 }
+                else rejected = true;
                 break;
             case Cmd::NOP:
             default:
                 n = 1;
                 break;
         }
-        if (n == 3){
-            v[0] = bit_cast(uint32_t, (float)g_foc.getIq());
-            v[1] = bit_cast(uint32_t, (float)g_foc.getMechSpeed() * SPD_UNIT);
-            v[2] = bit_cast(uint32_t, (float)g_foc.getPosFb() * POS_UNIT);
-        }
+        if (n == 3) fill_feedback();
         /* DEBUG COMMANDS */
         if (BOOT_MODE == DEBUG_){
             switch ((CmdDebug)cmd) {
@@ -745,18 +884,17 @@ void cmd_execute(bool is_valid, uint8_t tag, uint8_t cmd, uint32_t data)
                     v[2] = DBGMCU_GetDEVID();
                     n = 3;
                     break;
-                case CmdDebug::SET_ADDR:
-                    flash_save_data.addr = (uint8_t)data;
-                    n = 1;
-                    break;
                 case CmdDebug::SET_BAUDRATE:
                     flash_save_data.baudrate = data;
                     n = 1;
                     break;
-                case CmdDebug::SET_DEFAULT_CONFIG:
+                case CmdDebug::SET_DEFAULT_CONFIG: {
+                    const uint8_t addr_bak = flash_save_data.addr;
                     flash_save_data = flash_data_default;
+                    flash_save_data.addr = addr_bak;
                     n = 1;
                     break;
+                }
                 case CmdDebug::SAVE_CONFIG: {
                     bool en_bak = g_foc.en_;
                     g_foc.disable();
@@ -777,9 +915,25 @@ void cmd_execute(bool is_valid, uint8_t tag, uint8_t cmd, uint32_t data)
                     break;
             }
         }
-        g_protocol_tx.setType(n == 3 ? DataFrameType::LONG : DataFrameType::SHORT);
+        if (rejected){
+            n = 3;
+            type = DataFrameType::FAULT;
+            fill_feedback();
+        }
+        else if ((uint8_t)cmd > (uint8_t)CmdDebug::SET_OVC_TIMEOUT ||
+                 ((uint8_t)cmd > (uint8_t)Cmd::CLEAR_FAULT && BOOT_MODE != DEBUG_)){
+            n = 3;
+            type = DataFrameType::NOT_SUPPORTED;
+            fill_feedback();
+        }
+        else{
+            const bool warn = (sys_reg.warning.warning != 0);
+            type = (n == 3) ? (warn ? DataFrameType::LONG_WITH_WARNING : DataFrameType::LONG)
+                            : (warn ? DataFrameType::SHORT_WITH_WARNING : DataFrameType::SHORT);
+        }
     }
 
+    g_protocol_tx.setType(type);
     g_protocol_tx.setTag(tag);
     g_protocol_tx.setData(reinterpret_cast<const uint8_t*>(v), n * (int)sizeof(uint32_t));
 
@@ -792,6 +946,6 @@ void uart_tx_cplt_callback(void)
 {
     g_uart.receive_variable_on();
     g_protocol_rx.cpltSend();
-    GPIO_WriteBit(GPIOA, GPIO_Pin_LED, Bit_SET);
+    if (led_master == LedMaster::COMM) LED_OFF;
 }
 #endif  /* FOC_LINK_MODE == FOC_LINK_PROTOCOL */

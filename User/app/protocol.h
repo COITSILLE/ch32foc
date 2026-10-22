@@ -5,16 +5,19 @@
 #include "sstrtotype.h"
 
 struct long_cmd_frame{
-    uint8_t addr;
-    uint8_t tag_n_cmd;
+    uint8_t addr_n_cmd;
     uint8_t data[4];
     uint8_t checksum;
 };
 
 enum class DataFrameType : uint8_t {
     REQUIRE_RESEND = 0,
-    SHORT,
-    LONG,
+    SHORT = 0x01,
+    LONG = 0x02,
+    SHORT_WITH_WARNING = 0x11,
+    LONG_WITH_WARNING = 0x12,
+    FAULT = 0x03,
+    NOT_SUPPORTED = 0x04,
 };
 
 struct data_frame{
@@ -51,12 +54,11 @@ enum class Cmd : uint8_t {
 };
 
 enum class CmdDebug : uint8_t {
-    CALIB_ZERO_POS = (int)Cmd::SET_ABFILT_ZETA + 1,
+    CALIB_ZERO_POS = (int)Cmd::CLEAR_FAULT + 1,
     
     GET_ADDR,
     GET_DVC_INFO,
 
-    SET_ADDR,
     SET_BAUDRATE,
     SET_DEFAULT_CONFIG,
 
@@ -66,7 +68,8 @@ enum class CmdDebug : uint8_t {
     SET_OVC_TIMEOUT,
 };
 
-constexpr uint8_t GENERIC_DEVICE_ADDR = 0x00;
+#define ADDR_MASK 0xe0
+#define CMD_MASK 0x1f
 
 void do_crc(uint8_t* crc, uint8_t new_data);
 
@@ -76,20 +79,17 @@ class DeviceProtocolRx{
 public:
     DeviceProtocolRx(cmd_rcv_callback_t callback) : cmd_callback(callback) {}
 
-    void setAddr(uint8_t addr) { device_addr_ = addr; }
+    void setAddr(uint8_t addr) { device_addr_ = (addr > 7 ? 7 : addr); }
 
     void processCmdFrame(uint8_t rx_byte);
 
     void updateTimeoutState();
 
     void cpltSend() { if (state == AWAITS_SEND) state = IDLE; }
-    void rcvIdle() { if (state > IDLE) state = IDLE; } // reset the state machine
 private:
-    bool is_addr_matched = false;
     enum {
         AWAITS_SEND = 0,
         IDLE,
-        CMD,
         DATA,
         CHECKSUM,
     } state = IDLE;

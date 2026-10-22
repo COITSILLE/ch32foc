@@ -5,19 +5,14 @@
 
 #define UPDATE_TIMEOUT do{timeout_stamp = Systick_getMsTick();}while(0)
 
+
 void DeviceProtocolRx::processCmdFrame(uint8_t rx_byte){
     switch(state){
-        case (IDLE):
-            state = CMD;
-            memset(&last_cmd_frame_, 0, sizeof(last_cmd_frame_));
-            last_cmd_frame_.addr = rx_byte;
-            do_crc(&last_cmd_frame_.checksum, rx_byte);
-                
-            break;
-        case (CMD) : {
+        case (IDLE) : {
             data_index = 0;
-            last_cmd_frame_.tag_n_cmd = rx_byte;
-            uint8_t cmd = last_cmd_frame_.tag_n_cmd & 0x1f;
+            memset(&last_cmd_frame_, 0, sizeof(last_cmd_frame_));
+            last_cmd_frame_.addr_n_cmd = rx_byte;
+            uint8_t cmd = last_cmd_frame_.addr_n_cmd & CMD_MASK;
             if(cmd > (uint8_t)Cmd::NOP && cmd < (uint8_t)Cmd::SET_MODE){
                 state = CHECKSUM;
             }
@@ -40,13 +35,13 @@ void DeviceProtocolRx::processCmdFrame(uint8_t rx_byte){
             break;
         case (CHECKSUM): {
             bool crc_ok = (rx_byte == last_cmd_frame_.checksum);
-            bool addr_ok = ((last_cmd_frame_.addr == device_addr_ || last_cmd_frame_.addr == GENERIC_DEVICE_ADDR));
+            bool addr_ok = ((last_cmd_frame_.addr_n_cmd >> 5) == device_addr_);
 
             if (addr_ok){
                 state = AWAITS_SEND;
                 if (cmd_callback) {
-                    uint8_t tag = last_cmd_frame_.tag_n_cmd >> 5;
-                    uint8_t cmd = last_cmd_frame_.tag_n_cmd & 0x1f;
+                    uint8_t tag = last_cmd_frame_.addr_n_cmd >> 5;
+                    uint8_t cmd = last_cmd_frame_.addr_n_cmd & CMD_MASK;
                     uint32_t data;
                     memcpy(&data, last_cmd_frame_.data, sizeof(data));
                     cmd_callback(crc_ok, tag, cmd, data);
