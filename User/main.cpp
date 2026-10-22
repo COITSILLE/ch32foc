@@ -275,7 +275,7 @@ int main(void)
     GPIO_Sel_Init();
     GPIO_LED_Init();
     GPIO_ResetBits(GPIOA, GPIO_Pin_LED);
-    delay_ms_nortos(1000);
+    delay_ms_nortos(2000);
     GPIO_SetBits(GPIOA, GPIO_Pin_LED);
 
     if (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_0) == Bit_RESET) {
@@ -305,7 +305,6 @@ int main(void)
 
     TIM1_Init();
     OPA_Init();
-    ADC1_Init();
     TIM3_Init();
     Simu_SSI_Perips_Init();
     TIM2_Init();
@@ -326,6 +325,7 @@ int main(void)
            (int)g_encoder.readAngleRad().val);
 #endif
 
+    ADC1_Init();
     applyMotorConfig((motor_configs*)&flash_save_data.cfg);
 
     while (1) {
@@ -593,7 +593,7 @@ static void task_state(void)
                     input_timestamp = Systick_getMsTick();
                     last_turn = now_turn;
                 }
-                if (Systick_getMsTick() - input_timestamp > 4000){
+                if (Systick_getMsTick() - input_timestamp > 10000){
                     ui_state = UiStates::CALIB_POS;
                     input_timestamp = Systick_getMsTick();
                 }
@@ -633,7 +633,7 @@ static void task_state(void)
 
 static void task_led(void)
 {
-    NON_BLOCK_DELAY(200);
+    NON_BLOCK_DELAY(150);
     static uint8_t now_addr_cnt = 0;
     static uint8_t gap_cnt = 0;
     static LedMaster last_led_master = LedMaster::COMM;

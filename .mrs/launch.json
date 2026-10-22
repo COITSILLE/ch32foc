@@ -8,9 +8,9 @@
 			"cwd": "d:\\Documents\\ch32foc\\learn\\foc",
 			"openOCDCfg": {
 				"useLocalOpenOCD": true,
-				"executable": "d:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/OpenOCD/OpenOCD/bin/openocd.exe",
+				"executable": "d:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/OpenOCD/OpenOCD/bin/openocd.exe",
 				"configOptions": [
-					"-f \"d:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/OpenOCD/OpenOCD/bin/wch-riscv.cfg\" -c \"chip_id CH32M030\""
+					"-f \"d:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/OpenOCD/OpenOCD/bin/wch-riscv.cfg\" -c \"chip_id CH32M030\""
 				],
 				"gdbport": 3333,
 				"telnetport": 4444,
@@ -22,7 +22,7 @@
 				"enableNoZeroWaitingAreaFlash": false
 			},
 			"gdbCfg": {
-				"executable": "d:/Softwares/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gdb.exe",
+				"executable": "d:/Softwares/MounRiver/MounRiver_Studio3/resources/app/resources/win32/components/WCH/Toolchain/RISC-V Embedded GCC12/bin/riscv-wch-elf-gdb.exe",
 				"commands": [
 					"set mem inaccessible-by-default off",
 					"set architecture riscv:rv32",
@@ -54,7 +54,7 @@
 				},
 				"debugInRAM": false
 			},
-			"svdpath": "d:\\Softwares\\MounRiver\\MounRiver_Studio2\\resources\\app\\resources\\win32\\components\\WCH\\SDK\\default/RISC-V/CH32M030/NoneOS/CH32M030.svd",
+			"svdpath": "d:\\Softwares\\MounRiver\\MounRiver_Studio3\\resources\\app\\resources\\win32\\components\\WCH\\SDK\\default/RISC-V/CH32M030/NoneOS/CH32M030.svd",
 			"output": {
 				"showDebugGDBTrace": true,
 				"saveDebugOutputToFile": false,
