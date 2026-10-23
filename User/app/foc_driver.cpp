@@ -162,7 +162,10 @@ void FocDriver::updatePosLoop(){
     if (loop_mode_ != FocLoopMode::Pos) return;
 
 
-    q24_t err = q24_sub_w(pos_ref_, mech_ang_cont_) * POS_LOOP_ERR_SCALE;
+    q24_t err = q24_sub_w(pos_ref_, mech_ang_cont_);
+    // if      (err >  Q24_PI) err = q24_sub_w(err, Q24_TWOPI);
+    // else if (err < -Q24_PI) err = q24_add_w(err, Q24_TWOPI);
+    err *= POS_LOOP_ERR_SCALE;
 
     q24_t out = pid_pos.getOutputErr(err); 
 

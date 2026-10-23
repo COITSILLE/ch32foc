@@ -39,7 +39,9 @@ bool MT6701_SSI::update_sync(uint32_t timeout_ms)
     const uint16_t raw_ang = (uint16_t)(raw_);
     this->rad_ = rawToRad(raw_ang);
 
-    if ((int32_t)(raw_ang - prev_raw_) > (int32_t)(MT6701_RAW_MAX / 2)) {
+    if (first_sample_) {
+        first_sample_ = false;
+    } else if ((int32_t)(raw_ang - prev_raw_) > (int32_t)(MT6701_RAW_MAX / 2)) {
         turn_cnt_--;
     } else if ((int32_t)(raw_ang - prev_raw_) < -(int32_t)(MT6701_RAW_MAX / 2)) {
         turn_cnt_++;

@@ -66,6 +66,8 @@ enum class CmdDebug : uint8_t {
 
     SET_OVC_THRESHOLD,
     SET_OVC_TIMEOUT,
+
+    SET_CONT_ANG_ZERO_OFFSET,
 };
 
 #define ADDR_MASK 0xe0

@@ -202,6 +202,30 @@ public:
         else if (disturb_filt_coeff_ > 1) disturb_filt_coeff_ = Q24_ONE; 
     }
 
+    uint16_t setContAngZeroOffset() {
+        __disable_irq();
+        const uint16_t raw = encoder.readRaw();
+        const int32_t  ang = encoder.readAngleTurns() * (1 << 14) + raw;
+        __enable_irq();
+
+        cont_ang_zero_.raw = raw;
+        cont_ang_zero_.ref = ang;
+        return raw;
+    }
+    void applyContAngZeroOffset(uint16_t offset_raw) {
+        __disable_irq();
+        const uint16_t raw = encoder.readRaw();
+        const int32_t  ang = encoder.readAngleTurns() * (1 << 14) + raw;
+        __enable_irq();
+
+        constexpr int32_t HALF_TURN = 0x2000; constexpr int32_t FULL_TURN = 0x4000;
+        cont_ang_zero_.raw = offset_raw & 0x3FFF;
+        int32_t d = (int32_t)raw - (int32_t)cont_ang_zero_.raw;
+        if (d > HALF_TURN) d -= FULL_TURN;
+        else if (d < -HALF_TURN) d += FULL_TURN;
+        cont_ang_zero_.ref = ang - d;
+    }
+
     /* current loop debug */
     q24_t getIu() const { return current.u; }
     q24_t getIv() const { return current.v; }
@@ -303,7 +327,7 @@ private:
         uint16_t mech_ang_raw = encoder.readRaw();
         turns = encoder.readAngleTurns();
 
-        mech_ang_cont_ = q24_t::from_raw(turns * (1 << 14) | mech_ang_raw);
+        mech_ang_cont_ = q24_t::from_raw((turns * (1 << 14) | mech_ang_raw) - cont_ang_zero_.ref);
         // q17.14(2pi*rad) reinterpret as q24_t for calc
     };
 
@@ -367,4 +391,8 @@ private:
     FocLoopMode loop_mode_   = FocLoopMode::Current;
     q24_t mech_ang_cont_     = Q24_ZERO;
     q24_t pos_ref_           = Q24_ZERO;
+    struct{
+        uint16_t raw;
+        int32_t  ref;   /* q17.14 continuous angle (turns*16384 + raw), may be negative */
+    } cont_ang_zero_ = {0, 0};
 };

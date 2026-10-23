@@ -477,6 +477,7 @@ static void applyMotorConfig(motor_configs* cfg){
     g_foc.setSpeedLoopLimit(q24(cfg->speed_loop_limit));
     g_foc.setPosLoopLimit(cfg->pos_loop_limit);
     g_foc.setAngCalib(cfg->zero_ang_calib);
+    g_foc.applyContAngZeroOffset(cfg->cont_ang_zero_offset);
 }
 
 extern "C" void task_outer_loop(void)
@@ -547,7 +548,8 @@ static void task_state(void)
             break;
         case SysStates::CALIB_POS:
             flash_save_data.cfg.zero_ang_calib = g_foc.calibZeroPos();
-            sys_reg.state = SysStates::RUN;
+            /* 校准期间若发生 FAULT，保留故障态 */
+            if (sys_reg.state == SysStates::CALIB_POS) sys_reg.state = SysStates::RUN;
             break;
         default:
             sys_reg.state = SysStates::FAULT;
@@ -598,11 +600,10 @@ static void task_state(void)
                     input_timestamp = Systick_getMsTick();
                 }
                 break;
-            case UiStates::CALIB_POS: {
-                q24_t zero_pos = g_foc.calibZeroPos();
-                flash_save_data.cfg.zero_ang_calib = zero_pos;
+            case UiStates::CALIB_POS:
+                sys_reg.state = SysStates::CALIB_POS;
                 ui_state = UiStates::SAVE_CONFIG;
-            }
+                break;
             case UiStates::SAVE_CONFIG:
                 saveConfigToFlash(&flash_save_data);
                 g_protocol_rx.setAddr(flash_save_data.addr);
@@ -911,6 +912,13 @@ void cmd_execute(bool is_valid, uint8_t tag, uint8_t cmd, uint32_t data)
                     flash_save_data.cfg.ovc_timeout_ms = bit_cast(uint32_t, data);
                     n = 1;
                     break;
+                case CmdDebug::SET_CONT_ANG_ZERO_OFFSET: {
+                    uint16_t offset = g_foc.setContAngZeroOffset();
+                    g_foc.setPosRefFloat(0.0f); // avoid jump
+                    flash_save_data.cfg.cont_ang_zero_offset = (uint32_t)offset;
+                    n = 1;
+                    break;
+                }
                 default:
                     break;
             }
@@ -920,8 +928,8 @@ void cmd_execute(bool is_valid, uint8_t tag, uint8_t cmd, uint32_t data)
             type = DataFrameType::FAULT;
             fill_feedback();
         }
-        else if ((uint8_t)cmd > (uint8_t)CmdDebug::SET_OVC_TIMEOUT ||
-                 ((uint8_t)cmd > (uint8_t)Cmd::CLEAR_FAULT && BOOT_MODE != DEBUG_)){
+        else if ((uint8_t)cmd > (uint8_t)CmdDebug::SET_CONT_ANG_ZERO_OFFSET || // reserved
+                 ((uint8_t)cmd > (uint8_t)Cmd::CLEAR_FAULT && BOOT_MODE != DEBUG_)){ // not in debug
             n = 3;
             type = DataFrameType::NOT_SUPPORTED;
             fill_feedback();

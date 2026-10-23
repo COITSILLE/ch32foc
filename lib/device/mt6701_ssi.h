@@ -51,6 +51,7 @@ public:
 private:
     SimuSSI<24>& m_ssi;         /**< @brief SSI bus instance */
 
+    bool first_sample_ = true;
     bool first_async = true;   /**< @brief first async read: fire a read */
 
     /* ---- Helpers ---- */
