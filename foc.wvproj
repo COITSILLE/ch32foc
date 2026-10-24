@@ -67,7 +67,7 @@
 					"${project}/Startup/startup_ch32m030_5v.S"
 				],
 				"optimization": {
-					"level": "debug",
+					"level": "fast",
 					"message_length": true,
 					"char_is_signed": true,
 					"function_sections": true,

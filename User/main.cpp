@@ -77,7 +77,7 @@ union SysReg {
 } sys_reg = {0};
 bool calib_pos_requested = false;
 // bit[31:24] = reserved, bit[23:16] = major, bit[15:8] = minor, bit[7:0] = batch
-constexpr uint32_t FIRMWARE_VERSION = 0x00000001u; 
+constexpr uint32_t FIRMWARE_VERSION = 0x00000002u; 
 
 FlashData flash_save_data;
 enum BootMode { 
@@ -142,7 +142,7 @@ UART_HalfDuplex::CallbackFuncs uart_cbs = {
 UART_HalfDuplex g_uart{uart_cfg, uart_cbs};
 DeviceProtocolRx g_protocol_rx(cmd_execute);
 DeviceProtocolTx g_protocol_tx;
-static uint8_t tx_buffer[16];
+static uint8_t tx_buffer[20];
 
 #define LED_ON do{GPIO_ResetBits(GPIOA, GPIO_Pin_LED);}while (0)
 #define LED_OFF do{GPIO_SetBits(GPIOA, GPIO_Pin_LED);}while (0)

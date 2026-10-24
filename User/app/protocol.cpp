@@ -43,47 +43,66 @@ void do_crc(uint8_t* crc, uint8_t new_data) {
 
 void DeviceProtocolRx::processCmdFrame(uint8_t rx_byte) {
     switch (m_state) {
-        case (IDLE) : {
-            m_data_index = 0;
-            memset(&m_last_cmd_frame, 0, sizeof(m_last_cmd_frame));
-            m_last_cmd_frame.addr_n_cmd = rx_byte;
-            uint8_t cmd = m_last_cmd_frame.addr_n_cmd & CMD_MASK;
-            if (cmd > (uint8_t)Cmd::NOP && cmd < (uint8_t)Cmd::SET_MODE) {
-                m_state = CHECKSUM;
+        case (WAIT_SYNC) : {
+            if (rx_byte == FRAME_SYNC) {
+                m_data_index = 0;
+                memset(&m_last_cmd_frame, 0, sizeof(m_last_cmd_frame));
+                m_state = HEADER;
             }
-            else {
-                m_state = DATA;
-            }
-            do_crc(&m_last_cmd_frame.checksum, rx_byte);
             UPDATE_TIMEOUT;
             break;
         }
-        case (DATA):
-            m_data_buffer[m_data_index] = rx_byte;
-            m_data_index++;
+        case (HEADER) : {
+            m_last_cmd_frame.addr_n_cmd = rx_byte;
             do_crc(&m_last_cmd_frame.checksum, rx_byte);
-            if (m_data_index > 3) {
-                m_state = CHECKSUM;
-                memcpy(m_last_cmd_frame.data, m_data_buffer, 4);
+            m_state = LENGTH;
+            UPDATE_TIMEOUT;
+            break;
+        }
+        case (LENGTH) : {
+            m_last_cmd_frame.len = rx_byte;
+            do_crc(&m_last_cmd_frame.checksum, rx_byte);
+            if (m_last_cmd_frame.len > FRAME_MAX_DATA) {
+                m_state = WAIT_SYNC; // length is not trustworthy, resync on the next sync byte
+            }
+            else if ((m_last_cmd_frame.addr_n_cmd >> 5) != m_device_addr) {
+                m_skip_cnt = m_last_cmd_frame.len + 1; // data bytes and CRC of another device
+                m_state = SKIP;
+            }
+            else if (m_last_cmd_frame.len > CMD_DATA_SIZE) {
+                m_state = WAIT_SYNC; // a command frame carries at most one data word
+            }
+            else {
+                m_state = (m_last_cmd_frame.len == 0) ? CHECKSUM : DATA;
             }
             UPDATE_TIMEOUT;
             break;
-        case (CHECKSUM): {
-            bool crc_ok = (rx_byte == m_last_cmd_frame.checksum);
-            bool addr_ok = ((m_last_cmd_frame.addr_n_cmd >> 5) == m_device_addr);
-
-            if (addr_ok) {
-                m_state = AWAITS_SEND;
-                if (m_cmd_callback) {
-                    uint8_t tag = m_last_cmd_frame.addr_n_cmd >> 5;
-                    uint8_t cmd = m_last_cmd_frame.addr_n_cmd & CMD_MASK;
-                    uint32_t data;
-                    memcpy(&data, m_last_cmd_frame.data, sizeof(data));
-                    m_cmd_callback(crc_ok, tag, cmd, data);
-                }
+        }
+        case (SKIP) : {
+            if (--m_skip_cnt == 0) m_state = WAIT_SYNC;
+            UPDATE_TIMEOUT;
+            break;
+        }
+        case (DATA) : {
+            m_last_cmd_frame.data[m_data_index] = rx_byte;
+            m_data_index++;
+            do_crc(&m_last_cmd_frame.checksum, rx_byte);
+            if (m_data_index >= m_last_cmd_frame.len) {
+                m_state = CHECKSUM;
             }
-            else {
-                m_state = IDLE;
+            UPDATE_TIMEOUT;
+            break;
+        }
+        case (CHECKSUM) : {
+            bool crc_ok = (rx_byte == m_last_cmd_frame.checksum);
+            m_state = AWAITS_SEND; // the address has been filtered on the length byte already
+
+            if (m_cmd_callback) {
+                uint8_t tag = m_last_cmd_frame.addr_n_cmd >> 5;
+                uint8_t cmd = m_last_cmd_frame.addr_n_cmd & CMD_MASK;
+                uint32_t data;
+                memcpy(&data, m_last_cmd_frame.data, sizeof(data));
+                m_cmd_callback(crc_ok, tag, cmd, data);
             }
             UPDATE_TIMEOUT;
             break;
@@ -96,29 +115,32 @@ void DeviceProtocolRx::processCmdFrame(uint8_t rx_byte) {
 
 void DeviceProtocolRx::updateTimeoutState() {
     if (Systick_getMsTick() - m_timeout_stamp > 200) {
-        m_state = IDLE;
+        m_state = WAIT_SYNC;
     }
 }
 
 void DeviceProtocolTx::setTag(uint8_t tag) {
-    m_tx_buffer[0] &= 0x1f; // clear the tag bits
-    m_tx_buffer[0] |= (static_cast<uint8_t>(tag) & 0x07) << 5;
+    m_tx_buffer[1] &= 0x1f; // clear the tag bits
+    m_tx_buffer[1] |= (static_cast<uint8_t>(tag) & 0x07) << 5;
 }
 
 void DeviceProtocolTx::setType(DataFrameType type) {
-    m_tx_buffer[0] &= 0xe0; // clear the type bits
-    m_tx_buffer[0] |= static_cast<uint8_t>(type) & 0x1f;
-    m_tx_len = 2;
+    m_tx_buffer[0] = FRAME_SYNC;
+    m_tx_buffer[1] &= 0xe0; // clear the type bits
+    m_tx_buffer[1] |= static_cast<uint8_t>(type) & 0x1f;
+    m_tx_buffer[2] = 0;     // data length, filled in by setData()
+    m_tx_len = 3;
 }
 
 void DeviceProtocolTx::setData(const uint8_t* data, int len) {
-    memcpy(&m_tx_buffer[1], data, len);
-    m_tx_len = len + 2;
+    memcpy(&m_tx_buffer[3], data, len);
+    m_tx_buffer[2] = static_cast<uint8_t>(len);
+    m_tx_len = len + 4;
 }
 
 int DeviceProtocolTx::getTxFrame(uint8_t* buffer) {
     uint8_t crc = 0;
-    for (int i = 0; i < m_tx_len - 1; i++) {
+    for (int i = 1; i < m_tx_len - 1; i++) { // the sync byte is not covered by the CRC
         do_crc(&crc, m_tx_buffer[i]);
     }
     m_tx_buffer[m_tx_len - 1] = crc;

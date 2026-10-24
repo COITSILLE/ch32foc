@@ -4,10 +4,23 @@
 #include <cstring>
 #include "systick_time.h"
 
-/** @brief Long command frame: address + command byte, four data bytes and a CRC byte. */
+/** @brief Sync byte that starts every frame, in both directions. */
+#define FRAME_SYNC 0xa5
+/** @brief Maximum payload size of a command frame (one 32-bit word). */
+#define CMD_DATA_SIZE 4
+/** @brief Maximum payload size of any frame */
+#define FRAME_MAX_DATA 12
+
+/**
+ * @brief Command frame: sync byte, address + command byte, length byte, data bytes and a CRC byte.
+ *
+ * The response frame uses the same layout with the type byte in place of the command byte:
+ * sync byte, tag + type, length, data words and a CRC byte.
+ */
 struct LongCmdFrame {
     uint8_t addr_n_cmd;
-    uint8_t data[4];
+    uint8_t len;
+    uint8_t data[CMD_DATA_SIZE];
     uint8_t checksum;
 };
 
@@ -96,21 +109,24 @@ public:
     void updateTimeoutState();
 
     /** @brief Leave the awaiting-send state once the response has been handed off. */
-    void cpltSend() { if (m_state == AWAITS_SEND) m_state = IDLE; }
+    void cpltSend() { if (m_state == AWAITS_SEND) m_state = WAIT_SYNC; }
 private:
     enum {
         AWAITS_SEND = 0,
-        IDLE,
+        WAIT_SYNC,
+        HEADER,
+        LENGTH,
+        SKIP,
         DATA,
         CHECKSUM,
-    } m_state = IDLE;
+    } m_state = WAIT_SYNC;
 
     uint8_t m_device_addr = 0x00;
 
     cmd_rcv_callback_t m_cmd_callback = nullptr;
 
     uint8_t m_data_index = 0;
-    uint8_t m_data_buffer[4] = {0};
+    uint8_t m_skip_cnt = 0;
     LongCmdFrame m_last_cmd_frame = {0};
 
     uint32_t m_timeout_stamp = 0;
@@ -131,6 +147,6 @@ public:
      */
     int getTxFrame(uint8_t* buffer);
 private:
-    uint8_t m_tx_buffer[16] = {0};
+    uint8_t m_tx_buffer[20] = {0};
     int m_tx_len = 0;
 };
