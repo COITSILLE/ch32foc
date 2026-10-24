@@ -1,0 +1,51 @@
+# 固件真实回包样本（TSV：期望 kind <TAB> 原始行）
+# 数据来源：User/app/app_main.cpp 的各 case 回包格式（append_float / append_hex / sendText）
+# 协议一改，这里和 docs/protocol.md 一起改；测试只读这个文件，不再另写一份常量。
+pong	PONG
+feedback	FB 0.123 -12.345 6.2832
+feedback	FB -2.775 123.456 -100.0000
+feedback	FB 0.000 0.000 0.0000
+vbus	VBUS 24.012
+vbus	VBUS 0.000
+sysreg	SYSREG 0x00010000 1 0x00000000 0x00000000
+sysreg	SYSREG 0x00020010 2 0x00000010 0x00000020
+sysreg	SYSREG 0x00030000 3 0x00000000 0x00000000
+info	INFO 0x00010000 0x00000413 0x00002204
+deviceAddr	DADDR 3
+calibStarted	START CALIB
+ack	OK ENABLE
+ack	OK DISABLE
+ack	OK CLEAR
+ack	OK SAVE
+ack	OK DEFAULTS
+ack	OK ADDR 3
+ack	OK MODE 1
+ack	OK IQ 1.000
+ack	OK SPD -1200.000
+ack	OK POS 6.283
+ack	OK BW CUR 450.000
+ack	OK ZETA SPD 1.000
+ack	OK ZETA AB 0.850
+ack	OK OVC 2.000 3000
+ack	OK ZOFF
+ack	OK BAUD 115200
+error	ERR ARG
+error	ERR CMD
+error	ERR DEBUG
+error	ERR TIMEOUT
+error	ERR FAULT
+error	ERR UNSUPPORTED
+error	ERR FRAME
+error	ERR VBUS
+error	ERR LINE
+error	ERR DADDR
+# 以下是容错样本：字段缺失 / 非法数字 / 认不出来的行都必须降级为 unknown
+unknown	FB 1.0 2.0
+unknown	FB a b c
+unknown	VBUS
+unknown	SYSREG 0x00010000 1 0x00000000
+unknown	INFO 0x00010000 0x00000413
+unknown	DADDR
+unknown	START NOPE
+unknown	OKX
+unknown	BANNER 2204 FOC

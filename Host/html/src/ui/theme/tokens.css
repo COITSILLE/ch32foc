@@ -1,0 +1,28 @@
+/* 换肤只改这里：颜色 / 间距 / 字号 / 圆角 */
+:root {
+  --bg: #f4f7fb;
+  --card: #ffffff;
+  --line: #e4eaf1;
+  --line2: #eef2f7;
+  --fg: #172331;
+  --dim: #71808f;
+  --acc: #2563eb;
+  --teal: #0d9e9e;
+  --violet: #7c6cf0;
+  --ok: #16a34a;
+  --warn: #f59e0b;
+  --err: #ef4444;
+
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+
+  --gap-xs: 6px;
+  --gap-sm: 10px;
+  --gap: 14px;
+  --gap-lg: 18px;
+
+  --font: 14px/1.55 "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  --mono: ui-monospace, "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  --shadow: 0 1px 2px rgba(16, 32, 54, 0.04), 0 8px 24px -12px rgba(16, 32, 54, 0.14);
+}

@@ -164,8 +164,7 @@ void FocDriver::updatePosLoop() {
 
 
     q24_t err = q24_sub_w(m_pos_ref, m_mech_ang_cont);
-    // if      (err >  Q24_PI) err = q24_sub_w(err, Q24_TWOPI);
-    // else if (err < -Q24_PI) err = q24_add_w(err, Q24_TWOPI);
+
     err *= POS_LOOP_ERR_SCALE;
 
     q24_t out = m_pid_pos.getOutputErr(err); 
