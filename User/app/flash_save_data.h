@@ -42,9 +42,9 @@ struct alignas(4) FlashData {
 inline constexpr MotorConfigs motor_cfg_default = {
     .loop_mode = FocLoopMode::CURRENT,
     .current_loop_bw = 400.0f,
-    .speed_loop_bw = 20.0f,
+    .speed_loop_bw = 15.0f,
     .speed_loop_zeta = 1.0f,
-    .pos_loop_bw = 2.0f,
+    .pos_loop_bw = 5.0f,
     .eso_bw = 200.0f,
     .abfilt_bw = 80.0f,
     .abfilt_zeta = 0.9f,

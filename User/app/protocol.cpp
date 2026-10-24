@@ -129,7 +129,7 @@ void DeviceProtocolTx::setType(DataFrameType type) {
     m_tx_buffer[1] &= 0xe0; // clear the type bits
     m_tx_buffer[1] |= static_cast<uint8_t>(type) & 0x1f;
     m_tx_buffer[2] = 0;     // data length, filled in by setData()
-    m_tx_len = 3;
+    m_tx_len = 4;           // sync, header, length and CRC, grown by setData()
 }
 
 void DeviceProtocolTx::setData(const uint8_t* data, int len) {
