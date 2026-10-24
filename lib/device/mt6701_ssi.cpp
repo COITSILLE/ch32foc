@@ -1,5 +1,4 @@
 #include "mt6701_ssi.h"
-#include "iqmath.h"
 
 // ==================== Construction ====================
 MT6701_SSI::MT6701_SSI(SimuSSI<24>& ssi)
@@ -9,18 +8,6 @@ MT6701_SSI::MT6701_SSI(SimuSSI<24>& ssi)
 
 bool MT6701_SSI::init(){
     return update_sync();
-}
-
-// ==================== raw -> radians ====================
-q24_t MT6701_SSI::rawToRad(uint32_t raw)
-{
-    q24_t angle = q24_t::from_raw(raw << 10) * Q24_TWOPI;
-    if (angle < q24(0.0f)) {
-        angle += q24(2.0f * M_PI);
-    } else if (angle >= q24(2.0f * M_PI)) {
-        angle -= q24(2.0f * M_PI);
-    }
-    return angle;
 }
 
 // ==================== Synchronous Updater ====================
@@ -75,4 +62,16 @@ bool MT6701_SSI::update_async()
         return true;
     }
     return false;
+}
+
+// ==================== raw -> radians ====================
+q24_t MT6701_SSI::rawToRad(uint32_t raw)
+{
+    q24_t angle = q24_t::from_raw(raw << 10) * Q24_TWOPI;
+    if (angle < q24(0.0f)) {
+        angle += q24(2.0f * M_PI);
+    } else if (angle >= q24(2.0f * M_PI)) {
+        angle -= q24(2.0f * M_PI);
+    }
+    return angle;
 }

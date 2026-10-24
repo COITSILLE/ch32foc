@@ -1,69 +1,6 @@
 #include "protocol.h"
-#include <cstdint>
-#include <cstring>
-#include "systick_time.h"
 
-#define UPDATE_TIMEOUT do{timeout_stamp = Systick_getMsTick();}while(0)
-
-
-void DeviceProtocolRx::processCmdFrame(uint8_t rx_byte){
-    switch(state){
-        case (IDLE) : {
-            data_index = 0;
-            memset(&last_cmd_frame_, 0, sizeof(last_cmd_frame_));
-            last_cmd_frame_.addr_n_cmd = rx_byte;
-            uint8_t cmd = last_cmd_frame_.addr_n_cmd & CMD_MASK;
-            if(cmd > (uint8_t)Cmd::NOP && cmd < (uint8_t)Cmd::SET_MODE){
-                state = CHECKSUM;
-            }
-            else{
-                state = DATA;
-            }
-            do_crc(&last_cmd_frame_.checksum, rx_byte);
-            UPDATE_TIMEOUT;
-            break;
-        }
-        case (DATA):
-            data_buf[data_index] = rx_byte;
-            data_index++;
-            do_crc(&last_cmd_frame_.checksum, rx_byte);
-            if(data_index > 3){
-                state = CHECKSUM;
-                memcpy(last_cmd_frame_.data, data_buf, 4);
-            }
-            UPDATE_TIMEOUT;
-            break;
-        case (CHECKSUM): {
-            bool crc_ok = (rx_byte == last_cmd_frame_.checksum);
-            bool addr_ok = ((last_cmd_frame_.addr_n_cmd >> 5) == device_addr_);
-
-            if (addr_ok){
-                state = AWAITS_SEND;
-                if (cmd_callback) {
-                    uint8_t tag = last_cmd_frame_.addr_n_cmd >> 5;
-                    uint8_t cmd = last_cmd_frame_.addr_n_cmd & CMD_MASK;
-                    uint32_t data;
-                    memcpy(&data, last_cmd_frame_.data, sizeof(data));
-                    cmd_callback(crc_ok, tag, cmd, data);
-                }
-            }
-            else{
-                state = IDLE;
-            }
-            UPDATE_TIMEOUT;
-            break;
-        }
-        case (AWAITS_SEND):
-        default:
-            break;
-    }
-}
-
-void DeviceProtocolRx::updateTimeoutState(){
-    if (Systick_getMsTick() - timeout_stamp > 200){
-        state = IDLE;
-    }
-}
+#define UPDATE_TIMEOUT do{m_timeout_stamp = Systick_getMsTick();}while (0)
 
 const uint8_t crc_table[256] = {
     0x00, 0x5e, 0xbc, 0xe2, 0x61, 0x3f, 0xdd, 0x83, 
@@ -100,34 +37,93 @@ const uint8_t crc_table[256] = {
     0xb6, 0xe8, 0x0a, 0x54, 0xd7, 0x89, 0x6b, 0x35,
 };
 
-void do_crc(uint8_t* crc, uint8_t new_data){
+void do_crc(uint8_t* crc, uint8_t new_data) {
     *crc = crc_table[(*crc ^ new_data) & 0xff];
 }
 
-void DeviceProtocolTx::setTag(uint8_t tag){
-    tx_buf_[0] &= 0x1f; // clear the tag bits
-    tx_buf_[0] |= (static_cast<uint8_t>(tag) & 0x07) << 5;
-}
+void DeviceProtocolRx::processCmdFrame(uint8_t rx_byte) {
+    switch (m_state) {
+        case (IDLE) : {
+            m_data_index = 0;
+            memset(&m_last_cmd_frame, 0, sizeof(m_last_cmd_frame));
+            m_last_cmd_frame.addr_n_cmd = rx_byte;
+            uint8_t cmd = m_last_cmd_frame.addr_n_cmd & CMD_MASK;
+            if (cmd > (uint8_t)Cmd::NOP && cmd < (uint8_t)Cmd::SET_MODE) {
+                m_state = CHECKSUM;
+            }
+            else {
+                m_state = DATA;
+            }
+            do_crc(&m_last_cmd_frame.checksum, rx_byte);
+            UPDATE_TIMEOUT;
+            break;
+        }
+        case (DATA):
+            m_data_buffer[m_data_index] = rx_byte;
+            m_data_index++;
+            do_crc(&m_last_cmd_frame.checksum, rx_byte);
+            if (m_data_index > 3) {
+                m_state = CHECKSUM;
+                memcpy(m_last_cmd_frame.data, m_data_buffer, 4);
+            }
+            UPDATE_TIMEOUT;
+            break;
+        case (CHECKSUM): {
+            bool crc_ok = (rx_byte == m_last_cmd_frame.checksum);
+            bool addr_ok = ((m_last_cmd_frame.addr_n_cmd >> 5) == m_device_addr);
 
-void DeviceProtocolTx::setType(DataFrameType type){
-    tx_buf_[0] &= 0xe0; // clear the type bits
-    tx_buf_[0] |= static_cast<uint8_t>(type) & 0x1f;
-    tx_len_ = 2;
-}
-
-void DeviceProtocolTx::setData(const uint8_t* data, int len){
-    memcpy(&tx_buf_[1], data, len);
-    tx_len_ = len + 2;
-}
-
-int DeviceProtocolTx::getTxFrame(uint8_t* buf){
-    uint8_t crc = 0;
-    for(int i = 0; i < tx_len_ - 1; i++){
-        do_crc(&crc, tx_buf_[i]);
+            if (addr_ok) {
+                m_state = AWAITS_SEND;
+                if (m_cmd_callback) {
+                    uint8_t tag = m_last_cmd_frame.addr_n_cmd >> 5;
+                    uint8_t cmd = m_last_cmd_frame.addr_n_cmd & CMD_MASK;
+                    uint32_t data;
+                    memcpy(&data, m_last_cmd_frame.data, sizeof(data));
+                    m_cmd_callback(crc_ok, tag, cmd, data);
+                }
+            }
+            else {
+                m_state = IDLE;
+            }
+            UPDATE_TIMEOUT;
+            break;
+        }
+        case (AWAITS_SEND):
+        default:
+            break;
     }
-    tx_buf_[tx_len_ - 1] = crc;
-    // do_crc(&tx_buf_[tx_len_ - 1], tx_buf_[tx_len_ - 2]);
+}
 
-    memcpy(buf, tx_buf_, tx_len_);
-    return tx_len_;
+void DeviceProtocolRx::updateTimeoutState() {
+    if (Systick_getMsTick() - m_timeout_stamp > 200) {
+        m_state = IDLE;
+    }
+}
+
+void DeviceProtocolTx::setTag(uint8_t tag) {
+    m_tx_buffer[0] &= 0x1f; // clear the tag bits
+    m_tx_buffer[0] |= (static_cast<uint8_t>(tag) & 0x07) << 5;
+}
+
+void DeviceProtocolTx::setType(DataFrameType type) {
+    m_tx_buffer[0] &= 0xe0; // clear the type bits
+    m_tx_buffer[0] |= static_cast<uint8_t>(type) & 0x1f;
+    m_tx_len = 2;
+}
+
+void DeviceProtocolTx::setData(const uint8_t* data, int len) {
+    memcpy(&m_tx_buffer[1], data, len);
+    m_tx_len = len + 2;
+}
+
+int DeviceProtocolTx::getTxFrame(uint8_t* buffer) {
+    uint8_t crc = 0;
+    for (int i = 0; i < m_tx_len - 1; i++) {
+        do_crc(&crc, m_tx_buffer[i]);
+    }
+    m_tx_buffer[m_tx_len - 1] = crc;
+    // do_crc(&m_tx_buffer[m_tx_len - 1], m_tx_buffer[m_tx_len - 2]);
+
+    memcpy(buffer, m_tx_buffer, m_tx_len);
+    return m_tx_len;
 }

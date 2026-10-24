@@ -19,10 +19,10 @@ void SystickTimestamp_init(void){
     SysTick->CNT  = 0U;
     SysTick->CMP  = reload - 1U;
 
-    /* STE | STIE | STCLK | STRE，MODE=0 向上计数，1ms 周期中断 */
+    /* STE | STIE | STCLK | STRE, MODE=0 up-counting, 1ms periodic interrupt */
     SysTick->CTLR = (1U<<0) | (1U<<1) | (1U<<2) | (1U<<3);
     NVIC_EnableIRQ(SysTick_IRQn);
-    __asm volatile ("fence.i");   /* 同步 PFIC 中断使能状态 */
+    __asm volatile ("fence.i");  // synchronize the PFIC interrupt enable state
     #elif defined(USING_FREERTOS)
     return; // FreeRTOS will call vApplicationTickHook on each tick, no need to configure SysTick here
     #endif
@@ -47,7 +47,7 @@ uint64_t Systick_getUsTick(void){
         ticks = ms_ticks;
         systick_current = SysTick->CNT;
     } while(ticks != ms_ticks);
-    /* 向上计数：CNT 从 0 增到 CMP，经过时间 = CNT / HCLK */
+    /* up-counting: CNT runs 0..CMP, elapsed time = CNT / HCLK */
     uint64_t us_part = (uint64_t)systick_current * 1000000 / __CORECLOCK_HZ__;
     return (uint64_t)ticks * 1000 + us_part;
 }
@@ -55,7 +55,7 @@ uint64_t Systick_getUsTick(void){
 #if defined(NO_RTOS)
 __attribute__((interrupt("WCH-Interrupt-fast")))
 void SysTick_Handler(void){
-    SysTick->SR &= ~(1U << 0);  /* 清 STK_ISR0 中断标志 */
+    SysTick->SR &= ~(1U << 0);  // clear the STK_ISR0 interrupt flag
     ms_ticks++;
 }
 #elif defined (USING_FREERTOS)
@@ -65,4 +65,4 @@ void vApplicationTickHook(void)
 }
 #endif
 
-//#endif /*RTOS*/
+//#endif  // RTOS

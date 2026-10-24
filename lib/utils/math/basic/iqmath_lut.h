@@ -82,24 +82,24 @@ static const int32_t q24_sqrt_lut[128] = {
 /* tan polynomial: tan(x) ~= x*P(x^2), P(t)=C0+C1*t+C2*t^2+C3*t^3+C4*t^4, t=x^2 in [0,(pi/4)^2].
  * 5-term Chebyshev, max err ~5e-5. The complementary branch (x>pi/4) evaluates the same P
  * at m=pi/2-x and takes the reciprocal. */
-static const q24_t Q24_TAN_C0    = q24_t{0x01000019}; /* = 1.000001490 */
-static const q24_t Q24_TAN_C1    = q24_t{0x005547C5}; /* = 0.333126366 */
-static const q24_t Q24_TAN_C2    = q24_t{0x0022DF45}; /* = 0.136219323 */
-static const q24_t Q24_TAN_C3    = q24_t{0x000A83C4}; /* = 0.041073084 */
-static const q24_t Q24_TAN_C4    = q24_t{0x000B1714}; /* = 0.043320894 */
+static const q24_t Q24_TAN_C0    = q24_t{0x01000019};  // = 1.000001490
+static const q24_t Q24_TAN_C1    = q24_t{0x005547C5};  // = 0.333126366
+static const q24_t Q24_TAN_C2    = q24_t{0x0022DF45};  // = 0.136219323
+static const q24_t Q24_TAN_C3    = q24_t{0x000A83C4};  // = 0.041073084
+static const q24_t Q24_TAN_C4    = q24_t{0x000B1714};  // = 0.043320894
 /* atan polynomial: atan(x) ~= x*S(u), u=1-|x| in [0,1],
  * S(u)=C0+u*(C1+u*(C2+u*(C3+u*C4))). 5-term polynomial, max err ~3e-5.
  * |x|>1 uses atan(x)=pi/2-atan(1/x). */
-static const q24_t Q24_ATAN_C0   = q24_t{0x00C910DD}; /* = 0.785413563 */
-static const q24_t Q24_ATAN_C1   = q24_t{0x0048D2FD}; /* = 0.284469426 */
-static const q24_t Q24_ATAN_C2   = q24_t{0x000B0A35}; /* = 0.043124497 */
-static const q24_t Q24_ATAN_C3   = q24_t{0xFFEF8898}; /* = -0.064321995 */
-static const q24_t Q24_ATAN_C4   = q24_t{0xFFF327F1}; /* = -0.050171793 */
+static const q24_t Q24_ATAN_C0   = q24_t{0x00C910DD};  // = 0.785413563
+static const q24_t Q24_ATAN_C1   = q24_t{0x0048D2FD};  // = 0.284469426
+static const q24_t Q24_ATAN_C2   = q24_t{0x000B0A35};  // = 0.043124497
+static const q24_t Q24_ATAN_C3   = q24_t{0xFFEF8898};  // = -0.064321995
+static const q24_t Q24_ATAN_C4   = q24_t{0xFFF327F1};  // = -0.050171793
 /* asin piecewise Remez polynomial (k=4): asin(x)=x*S(x^2),
  * S(t)=C0+C1*t+C2*t^2+C3*t^3+C4*t^4, t in [0,0.25] (|x|<=0.5 fast path);
  * the tail u=sqrt((1-|x|)/2) reuses the same polynomial. */
-static const q24_t Q24_ASIN_C0   = q24_t{0x01000001}; /* = 1.000000060 */
-static const q24_t Q24_ASIN_C1   = q24_t{0x002AA9AF}; /* = 0.166651666 */
-static const q24_t Q24_ASIN_C2   = q24_t{0x001351A9}; /* = 0.075464785 */
-static const q24_t Q24_ASIN_C3   = q24_t{0x000A2B2A}; /* = 0.039721131 */
-static const q24_t Q24_ASIN_C4   = q24_t{0x000CEDEB}; /* = 0.050505340 */
+static const q24_t Q24_ASIN_C0   = q24_t{0x01000001};  // = 1.000000060
+static const q24_t Q24_ASIN_C1   = q24_t{0x002AA9AF};  // = 0.166651666
+static const q24_t Q24_ASIN_C2   = q24_t{0x001351A9};  // = 0.075464785
+static const q24_t Q24_ASIN_C3   = q24_t{0x000A2B2A};  // = 0.039721131
+static const q24_t Q24_ASIN_C4   = q24_t{0x000CEDEB};  // = 0.050505340

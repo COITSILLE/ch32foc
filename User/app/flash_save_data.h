@@ -1,10 +1,10 @@
 #pragma once
 
-#include "sys_interface.h"
+#include <cstdint>
 #include "iqmath.h"
 #include "foc_driver.h"
 
-struct alignas(4) motor_configs{
+struct alignas(4) MotorConfigs {
     FocLoopMode loop_mode;
 
     float current_loop_bw;
@@ -28,19 +28,19 @@ struct alignas(4) motor_configs{
     uint32_t ovc_timeout_ms;
 };
 
-struct alignas(4) flash_data{
+struct alignas(4) FlashData {
     uint32_t version;
     uint8_t addr;
     uint32_t baudrate;
-    motor_configs cfg;
+    MotorConfigs cfg;
     uint8_t done;
 };
 
 #define FLASH_DATA_VERSION 0x3u // 2026.10.23
 #define FLASH_DATA_DONE_SIGN 0xA5u
 
-const motor_configs motor_cfg_default = {
-    .loop_mode = FocLoopMode::Current,
+inline constexpr MotorConfigs motor_cfg_default = {
+    .loop_mode = FocLoopMode::CURRENT,
     .current_loop_bw = 400.0f,
     .speed_loop_bw = 20.0f,
     .speed_loop_zeta = 1.0f,
@@ -59,7 +59,7 @@ const motor_configs motor_cfg_default = {
     .ovc_timeout_ms = 3000u,
 };
 
-const flash_data flash_data_default = {
+inline constexpr FlashData flash_data_default = {
     .version = FLASH_DATA_VERSION,
     .addr = 0x00,
     .baudrate = 115200,

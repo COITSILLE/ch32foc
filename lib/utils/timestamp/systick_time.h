@@ -63,5 +63,5 @@ extern void vApplicationTickHook(void);
 }
 #endif
 
-//#endif /*RTOS*/
+//#endif  // RTOS
 

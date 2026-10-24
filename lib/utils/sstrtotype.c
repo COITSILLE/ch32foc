@@ -157,24 +157,24 @@ uint32_t s_ftoa(const float num, char *str, uint8_t precision){
 
     _Bool sign = 0;
     float n = num;
-    /* n < 0 对 -0.0 为假，用符号位一并判负零 */
+    /* n < 0 is false for -0.0, so also test the sign bit */
     if (n < 0.0f || (n == 0.0f && __builtin_signbitf(num))){
         sign = 1;
         n = -n;
     }
 
-    /* scale = 10^precision：把数值放大为定点整数后一次四舍五入，
-     * 小数位再用整数运算逐位抽取，避免逐轮浮点累积误差。
-     * precision == 0 时不输出小数点。 */
+    /* scale = 10^precision: scale the value up to a fixed-point integer and round once,
+     * then extract the fraction digits with integer math to avoid accumulated float error.
+     * No decimal point is emitted when precision == 0. */
     uint32_t scale = 1u;
     float fscale = 1.0f;
     for (uint8_t i = 0; i < precision; i++){
         fscale *= 10.0f;
         scale  *= 10u;
     }
-    uint32_t fixed = (uint32_t)(n * fscale + 0.5f); /* 四舍五入到定点整数 */
-    uint32_t ip    = fixed / scale;                 /* 整数部分 */
-    uint32_t fp    = fixed % scale;                 /* 小数部分(×scale) */
+    uint32_t fixed = (uint32_t)(n * fscale + 0.5f);  // round to a fixed-point integer
+    uint32_t ip    = fixed / scale;  // integer part
+    uint32_t fp    = fixed % scale;  // fractional part (scaled)
 
     char *ptr = str;
     if (sign){

@@ -18,55 +18,43 @@
 #include "smath.h"
 #include "three_phase_inverter.h"
 #include "systick_time.h"
-#include "sstrtotype.h"
-#include "string.h"
-#include "sys_interface.h"
+#include <cstring>
 /*Include Cxx headers*/
 #include "mt6701_ssi.h"
 #include "iqmath.h"
 #include "foc_driver.h"
-#include "foc_config.h"
 #include "flash_save_data.h"
-#if (FOC_LINK_MODE == FOC_LINK_PROTOCOL)
 #include "protocol.h"
 #include "uart_halfduplex.h"
-#endif
-
 
 /* ========= Function Prototypes ========= */
-#if (FOC_LINK_MODE == FOC_LINK_TM)
-static void tm_tx_frame(void);
-#else
 static void task_protocol(void);
 void uart_tx_cplt_callback(void);
-void uart_rx_cplt_callback(void);
 void cmd_execute(bool is_valid, uint8_t tag, uint8_t cmd, uint32_t data);
-#endif
 extern "C" void updateEncoder(void);
 static void task_vbus(void);
 static void task_state(void);
 extern "C" void task_outer_loop(void);
 static void task_led(void);
-static bool loadConfigFromFlash(flash_data* fdata);
-static void applyMotorConfig(motor_configs* cfg);
-static void saveConfigToFlash(flash_data* fdata);
-
+static bool load_config_from_flash(FlashData* fdata);
+static void apply_motor_config(MotorConfigs* cfg);
+static void save_config_to_flash(FlashData* fdata);
 
 /* ========= Global Variables ========= */
 /* Global Variable */
-enum class SysStates : uint8_t{
+enum class SysStates : uint8_t {
     INIT = 0x00,
     RUN,
     FAULT,
 
     CALIB_POS,
 };
-union SYS_REG{
+union SysReg {
     uint32_t all;
-    struct{
+    struct {
         union {
             uint8_t warning : 8;
-            struct{
+            struct {
                 uint8_t reserved : 4;
                 uint8_t failed_read_flash : 1;
                 uint8_t failed_init_encoder : 1;
@@ -76,7 +64,7 @@ union SYS_REG{
         } warning;
         union {
             uint8_t fault : 8;
-            struct{
+            struct {
                 uint8_t reserved : 5;
                 uint8_t over_current : 1;
                 uint8_t over_voltage : 1;
@@ -91,11 +79,11 @@ bool calib_pos_requested = false;
 // bit[31:24] = reserved, bit[23:16] = major, bit[15:8] = minor, bit[7:0] = batch
 constexpr uint32_t FIRMWARE_VERSION = 0x00000001u; 
 
-flash_data flash_save_data;
-enum boot_mode { 
+FlashData flash_save_data;
+enum BootMode { 
     NORMAL_,
     DEBUG_,
-} BOOT_MODE = NORMAL_;
+} boot_mode = NORMAL_;
 
 enum class UiStates : uint8_t {
     IDLE = 0,
@@ -129,17 +117,14 @@ SimuSSI<24>::Config ssi_cfg = {
     .dio_dma_tc_flag = SSI_DIO_DMA_TC_FLAG,
 };
 
-SimuSSI<24> ssi(ssi_cfg);
+SimuSSI<24> g_ssi(ssi_cfg);
 
-/* Global MT6701 encoder instance */
-MT6701_SSI g_encoder(ssi);
+MT6701_SSI g_encoder(g_ssi);
 
 FocDriver g_foc(g_encoder);
 
-#if (FOC_LINK_MODE == FOC_LINK_PROTOCOL)
 static uint8_t rx_buffer[64];
 static uint16_t rx_buffer_size = sizeof(rx_buffer);
-
 
 UART_HalfDuplex::Config uart_cfg = {
     .usart = USART1,
@@ -158,94 +143,27 @@ UART_HalfDuplex g_uart{uart_cfg, uart_cbs};
 DeviceProtocolRx g_protocol_rx(cmd_execute);
 DeviceProtocolTx g_protocol_tx;
 static uint8_t tx_buffer[16];
-#endif
 
-
-
-static volatile uint32_t g_tick_count = 0;
-#define LED_ON do{GPIO_ResetBits(GPIOA, GPIO_Pin_LED);}while(0)
-#define LED_OFF do{GPIO_SetBits(GPIOA, GPIO_Pin_LED);}while(0)
-
-/* 两种模式共用：故障打印去重 */
-#if (FOC_LINK_MODE == FOC_LINK_TM)
-static bool     g_fault_reported = false;
-#endif
+#define LED_ON do{GPIO_ResetBits(GPIOA, GPIO_Pin_LED);}while (0)
+#define LED_OFF do{GPIO_SetBits(GPIOA, GPIO_Pin_LED);}while (0)
 
 constexpr q24_t FOC_ADC_SCALE_V = q24(VBUS_FULL);
 constexpr q24_t vbus_calib      = q24(-0.01f);
 
-
 const uint32_t FOC_SAVE_DATA_ADDR = 0x0800FF80u;
-
-#if (FOC_LINK_MODE == FOC_LINK_TM)
-#define FOC_TM_LOOP   1
-
-#if FOC_TM_LOOP == 0
-/* 电流环遥测通道索引：Iu Iv Iw | Id Iq | Vd Vq | 角度rad | 预测电角rad | 控制拍计数 */
-enum {
-    TM_IU = 0, TM_IV, TM_IW,       /* 相电流（A） */
-    TM_ID,     TM_IQ,              /* d/q 轴电流反馈（A） */
-    TM_VD,     TM_VQ,              /* d/q 轴电压参考（V） */
-    TM_ANG,    TM_PRED,            /* 转子机械角（rad）/ 控制环预测电角（rad） */
-    TM_TSTAMP,                     /* 控制拍计数（32 位；见 g_tick_count 注释） */
-    TM_NCH
-};
-#elif FOC_TM_LOOP == 1
-enum {
-    TM_SREF = 0, TM_SFB,           /* speed ref/fb (scaled: xSPD_UNIT = rad/s, mech) */
-    TM_PREF,     TM_PFB,           /* 位置给定/反馈（Q17.14 计数：rad = v * 2pi/16384） */
-    TM_IQR,      TM_IQ,  TM_ID,    /* iq 给定/反馈、id 反馈（A） */
-    TM_VD,       TM_VQ,            /* d 轴/q 轴电压参考（V，含解耦项与限幅后的值） */
-    TM_ANG,                        /* 转子机械角（rad，0~2π） */
-    TM_ABF_ANG,
-    TM_ESO_SPD,  TM_ESO_DIST,
-    TM_TSTAMP,                     /* 控制拍计数（32 位；见 g_tick_count 注释） */
-    TM_NCH
-};
-#else
-#error "FOC_TM_LOOP undefined"
-#endif
-/* 帧长：TM_NCH 个数据字 + 1 个尾字。
- * ⚠️ 改 2kHz 抽取值(CTRL_DECIM_2KHZ)或帧宽要同步看带宽：
- *    帧长(TM_NCH*4+4) × 速率 ≤ 波特率/10，留 ≥20% 余量；且发送时长必须 < 1 帧周期
- *    （tm_dma_kick 每帧会 DISABLE 通道，会截断在发的帧）。 */
-static constexpr uint16_t TM_FRAME_BYTES = TM_NCH * 4 + 4;   /* 电流环 44 / 速度位置环 60 */
-
-/* ===== 2kHz DMA 遥测发送（开环/闭环共用；节拍来源见 ctrl_tick_2khz）===== */
-static uint32_t s_txbuf[2][TM_NCH + 1];   /* 每槽 = TM_NCH 数据 + 1 尾字，4 对齐 */
-static uint8_t  s_tx_slot = 0;            /* 下帧要装载的缓冲槽（ping-pong） */
-#endif  /* FOC_LINK_MODE == FOC_LINK_TM */
-
 
 /* ========= Main ========= */
 
-int main(void)
-{
+int main(void) {
     SystemCoreClockUpdate();
     Delay_Init();
-#if (FOC_LINK_MODE == FOC_LINK_TM)
-#if (SDI_PRINT == SDI_PR_OPEN)
-    SDI_Printf_Enable();
-#else
-    USART_Printf_Init(2000000);
-#endif
-#endif
     SystickTimestamp_init();
 
-#if (FOC_LINK_MODE == FOC_LINK_TM)
-    printf("[boot] 0 uart 2Mbaud + systick ok\r\n");
-#endif
-    
     /* Read first; programming option bytes on every boot is unnecessary. */
     const uint16_t desired_user_ob = OB_STOP_NoRST | OB_STDBY_NoRST |
                                      OB_RST_NoEN | OB_RST_PIN_PC0 |
                                      OB_OV_CFG_NoEN | 0x0041u;
     const uint32_t current_user_ob = FLASH_GetUserOptionByte();
-#if (FOC_LINK_MODE == FOC_LINK_TM)
-    printf("UserOptionByte=%08lX (expected low byte=%02X)\r\n",
-           (unsigned long)current_user_ob,
-           (unsigned)(desired_user_ob & 0x00FFu));
-#endif
 
     if ((current_user_ob & 0x00FFu) != (uint32_t)(desired_user_ob & 0x00FFu)) {
         FLASH_Status status = FLASH_UserOptionByteConfig(
@@ -255,12 +173,7 @@ int main(void)
             OB_RST_PIN_PC0,
             OB_OV_CFG_NoEN
         );
-#if (FOC_LINK_MODE == FOC_LINK_TM)
-        printf("UserOptionByte update status=%d; power-cycle required\r\n",
-               (int)status);
-#else
         (void)status;
-#endif
     }
     sys_reg.mcu_flags = 0;
     uint32_t r = RCC->RSTSCKR;
@@ -279,54 +192,36 @@ int main(void)
     GPIO_SetBits(GPIOA, GPIO_Pin_LED);
 
     if (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_0) == Bit_RESET) {
-        BOOT_MODE = DEBUG_;
+        boot_mode = DEBUG_;
     }
     memset(&flash_save_data, 0, sizeof(flash_save_data));
-    if (!loadConfigFromFlash((flash_data*)&flash_save_data)) {
+    if (!load_config_from_flash((FlashData*)&flash_save_data)) {
         sys_reg.warning.failed_read_flash = 1;
     }
 
-#if (FOC_LINK_MODE == FOC_LINK_TM)
-    printf("SystemClk:%d\r\n", SystemCoreClock);
-    printf("ChipID:%08x\r\n", DBGMCU_GetCHIPID());
-#endif
+    g_foc.m_calibrating = true;
 
-    g_foc.calibrating = true;
-
-    ssi.init();
-#if (FOC_LINK_MODE == FOC_LINK_PROTOCOL)
-    /* 半双工 protocol：UART + DMA 配置。TX 缓冲/MADDR 由 transmit_async 每帧重设，这里复用 rx_buffer。 */
+    g_ssi.init();
+    /* Half-duplex protocol: UART + DMA setup. The TX buffer and MADDR are reloaded by transmit_async on every frame. */
     UART_Init(flash_save_data.baudrate);
 
     g_uart.init();
     g_protocol_rx.setAddr(flash_save_data.addr);
-    g_uart.receive_variable_on();                       /* 默认处于接收态：开 RX DMA + IDLE 中断 */
-#endif
+    g_uart.receive_variable_on();
 
     TIM1_Init();
     OPA_Init();
     TIM3_Init();
     Simu_SSI_Perips_Init();
     TIM2_Init();
-    
-#if (FOC_LINK_MODE == FOC_LINK_TM)
-    printf("[boot] 2 <- PERIPHS_INIT ok\r\n");
-    USART1_DMA_TX_Init();
-#endif
 
-    const bool enc_ok = g_encoder.init();
-    if(!enc_ok){
+    const bool encoder_ok = g_encoder.init();
+    if (!encoder_ok) {
         sys_reg.warning.failed_init_encoder = 1;
     }
-#if (FOC_LINK_MODE == FOC_LINK_TM)
-    printf("[boot] SSI first frame: %s raw=%u ang_q24=%d\r\n",
-           enc_ok ? "OK" : "FAIL",
-           (unsigned)g_encoder.readRaw(),
-           (int)g_encoder.readAngleRad().val);
-#endif
 
     ADC1_Init();
-    applyMotorConfig((motor_configs*)&flash_save_data.cfg);
+    apply_motor_config((MotorConfigs*)&flash_save_data.cfg);
 
     while (1) {
         task_vbus();
@@ -339,100 +234,76 @@ int main(void)
     }
 }
 
-
 /* ======== Function Implementation ======== */
-extern "C" void ssi_irqHandler(){
-    ssi.irqHandler();
+extern "C" void ssi_irqHandler() {
+    g_ssi.irqHandler();
 }
 
-#if (FOC_LINK_MODE == FOC_LINK_PROTOCOL)
-extern "C" void uart_irqHandler(){
+extern "C" void uart_irqHandler() {
     g_uart.irqHandler();
 }
-#endif
 
-#if (FOC_LINK_MODE == FOC_LINK_TM)
-static inline bool CtrlTick_div5(void)
-{
-    static uint8_t dc = 0;
-    if (++dc < 5) return false;
-    dc = 0;
-    return true;
-}
-#endif
-
-static inline bool CtrlTick_div2(void)
-{
+static inline bool ctrl_tick_div2(void) {
     static uint8_t dc = 0;
     if (++dc < 2) return false;
     dc = 0;
     return true;
 }
 
-extern "C" void updateEncoder(void)
-{
+extern "C" void updateEncoder(void) {
     g_encoder.update_async();
 }
 
-extern "C" void ADC_JEOC_irqHandler(void)
-{
+extern "C" void ADC_JEOC_irqHandler(void) {
     if (ADC_GetITStatus(ADC1, ADC_IT_JEOC) == RESET) return;
+
+    updateEncoder();
     
-    // g_tick_count++;   /* 控制拍计数：先自增，本拍若发帧带的就是当前拍号 */
-    
-    updateEncoder();           /* 编码器异步读（原 TIM3 1kHz 中断驱动，现并入本 ISR） */
-    
-    if (sys_reg.state == SysStates::RUN){
-        g_foc.updateCurrLoop();
+    if (sys_reg.state == SysStates::RUN) {
+        g_foc.updateCurrentLoop();
     }
 
     ADC_ClearITPendingBit(ADC1, ADC_IT_JEOC);
-#if (FOC_LINK_MODE == FOC_LINK_TM)
-    if (CtrlTick_div5()) {          /* 10kHz ÷5 → 2kHz */
-        tm_tx_frame();               /* 2kHz 遥测帧：取本拍 update() 刚写好的量并启动 DMA */
-    }
-#endif
 }
 
-extern "C" void ADC_VBUS_irqHandler(void)
-{
-    auto goFault = [&](){
+extern "C" void ADC_VBUS_irqHandler(void) {
+    auto goFault = [&]() {
         sys_reg.state = SysStates::FAULT;
         inv_set_duty(0x8000, 0x8000, 0x8000);
     };
 
-    if (ADC_GetITStatus(ADC1, ADC_IT_AWD_OV) == SET){
+    if (ADC_GetITStatus(ADC1, ADC_IT_AWD_OV) == SET) {
         ADC_ITConfig(ADC1, ADC_IT_AWD_OV, DISABLE);
         sys_reg.fault.over_voltage = 1;
         goFault();
         ADC_ClearITPendingBit(ADC1, ADC_IT_AWD_OV);
     }
-    if (ADC_GetITStatus(ADC1, ADC_IT_AWD_DN) == SET){
+    if (ADC_GetITStatus(ADC1, ADC_IT_AWD_DN) == SET) {
         ADC_ITConfig(ADC1, ADC_IT_AWD_DN, DISABLE);
         sys_reg.fault.under_voltage = 1;
         goFault();
         ADC_ClearITPendingBit(ADC1, ADC_IT_AWD_DN);
     }
-    if (ADC_GetITStatus(ADC1, ADC_IT_AVG_OV) == SET){
+    if (ADC_GetITStatus(ADC1, ADC_IT_AVG_OV) == SET) {
         sys_reg.warning.voltage_back_charged = 1;
         ADC_ClearITPendingBit(ADC1, ADC_IT_AVG_OV);
     }
-    if (ADC_GetITStatus(ADC1, ADC_IT_AVG_DN) == SET){
+    if (ADC_GetITStatus(ADC1, ADC_IT_AVG_DN) == SET) {
         sys_reg.warning.voltage_fell = 1;
         ADC_ClearITPendingBit(ADC1, ADC_IT_AVG_DN);
     }
 }
 
-static void saveConfigToFlash(flash_data* fdata){
+static void save_config_to_flash(FlashData* fdata) {
     __disable_irq();
     FLASH_Unlock_Fast();
     FLASH_ErasePage_Fast(FOC_SAVE_DATA_ADDR);
-    while(FLASH_WaitForLastOperation(100000) != FLASH_COMPLETE) {}
+    while (FLASH_WaitForLastOperation(100000) != FLASH_COMPLETE) {}
     FLASH_BufReset();
 
-    size_t size_word = sizeof(flash_data) / sizeof(uint32_t);
+    size_t size_word = sizeof(FlashData) / sizeof(uint32_t);
     uint32_t* data_word = reinterpret_cast<uint32_t*>(fdata);
-    for(int i = 0; i < (size_word + 1) / 2; i++){
+    for (int i = 0; i < (size_word + 1) / 2; i++) {
         uint32_t data1 = data_word[i * 2];
         if (i * 2 + 1 < size_word) {
             uint32_t data2 = data_word[i * 2 + 1];
@@ -440,21 +311,20 @@ static void saveConfigToFlash(flash_data* fdata){
         } else {
             FLASH_BufLoad(FOC_SAVE_DATA_ADDR + i * 8, data1, 0);
         }
-        while(FLASH_WaitForLastOperation(100000) != FLASH_COMPLETE) {}
+        while (FLASH_WaitForLastOperation(100000) != FLASH_COMPLETE) {}
     }
 
     FLASH_ProgramPage_Fast(FOC_SAVE_DATA_ADDR);
-    while(FLASH_WaitForLastOperation(100000) != FLASH_COMPLETE) {}
-
+    while (FLASH_WaitForLastOperation(100000) != FLASH_COMPLETE) {}
 
     FLASH_Lock_Fast();
     FLASH_Lock();
     __enable_irq();
 }
 
-static bool loadConfigFromFlash(flash_data* fdata){
-    const flash_data* fdata_raw = reinterpret_cast<const flash_data*>(FOC_SAVE_DATA_ADDR);
-    if(fdata_raw->version == FLASH_DATA_VERSION && fdata_raw->done == FLASH_DATA_DONE_SIGN){
+static bool load_config_from_flash(FlashData* fdata) {
+    const FlashData* fdata_raw = reinterpret_cast<const FlashData*>(FOC_SAVE_DATA_ADDR);
+    if (fdata_raw->version == FLASH_DATA_VERSION && fdata_raw->done == FLASH_DATA_DONE_SIGN) {
         *fdata = *fdata_raw;
         return true;
     } else {
@@ -463,7 +333,7 @@ static bool loadConfigFromFlash(flash_data* fdata){
     }
 }
 
-static void applyMotorConfig(motor_configs* cfg){
+static void apply_motor_config(MotorConfigs* cfg) {
     g_foc.setLoopMode(cfg->loop_mode);
     g_foc.setCurrentLoopBandWidth(cfg->current_loop_bw);
     g_foc.setSpeedLoopBandWidth(cfg->speed_loop_bw, cfg->speed_loop_zeta);
@@ -480,11 +350,10 @@ static void applyMotorConfig(motor_configs* cfg){
     g_foc.applyContAngZeroOffset(cfg->cont_ang_zero_offset);
 }
 
-extern "C" void task_outer_loop(void)
-{
+extern "C" void task_outer_loop(void) {
     if (sys_reg.state != SysStates::RUN) return;
     
-    if(CtrlTick_div2()){
+    if (ctrl_tick_div2()) {
         
         g_foc.updatePosLoop();
         
@@ -494,9 +363,8 @@ extern "C" void task_outer_loop(void)
     
 }
 
-static void task_vbus(void)
-{
-    if (sys_reg.warning.voltage_fell || sys_reg.warning.voltage_back_charged){
+static void task_vbus(void) {
+    if (sys_reg.warning.voltage_fell || sys_reg.warning.voltage_back_charged) {
         goto update_vbus;
     }
     NON_BLOCK_DELAY(500);
@@ -514,8 +382,7 @@ update_vbus:
     g_foc.setVbus(vbus);
 }
 
-static void task_state(void)
-{
+static void task_state(void) {
     NON_BLOCK_DELAY(10);
 
     static uint32_t ovc_timestamp = 0;
@@ -532,7 +399,7 @@ static void task_state(void)
             g_foc.disable();
             break;
         case SysStates::RUN:
-            if (BOOT_MODE == DEBUG_ && calib_pos_requested) {
+            if (boot_mode == DEBUG_ && calib_pos_requested) {
                 sys_reg.state = SysStates::CALIB_POS;
                 calib_pos_requested = false;
             }
@@ -542,13 +409,13 @@ static void task_state(void)
                     ovc_timestamp = Systick_getMsTick();
                 }
             }
-            else{
+            else {
                 may_ovc = false;
             }
             break;
         case SysStates::CALIB_POS:
             flash_save_data.cfg.zero_ang_calib = g_foc.calibZeroPos();
-            /* 校准期间若发生 FAULT，保留故障态 */
+            /* keep the fault state if a fault occurred during calibration */
             if (sys_reg.state == SysStates::CALIB_POS) sys_reg.state = SysStates::RUN;
             break;
         default:
@@ -556,7 +423,7 @@ static void task_state(void)
             break;
     }
 
-    if (sys_reg.state != SysStates::RUN){
+    if (sys_reg.state != SysStates::RUN) {
         may_ovc = false;
     }
 
@@ -571,7 +438,7 @@ static void task_state(void)
 
     static int32_t last_turn = g_encoder.readAngleTurns();
     static uint32_t input_timestamp = 0;
-    if (sys_reg.state == SysStates::RUN && BOOT_MODE == DEBUG_ && !g_foc.en_){
+    if (sys_reg.state == SysStates::RUN && boot_mode == DEBUG_ && !g_foc.m_en) {
         int32_t now_turn = g_encoder.readAngleTurns();
         int32_t dturn = now_turn - last_turn;
 
@@ -585,17 +452,17 @@ static void task_state(void)
                 }
                 break;
             case UiStates::INPUT:
-                if (dturn > 0){
+                if (dturn > 0) {
                     if (flash_save_data.addr < 7) flash_save_data.addr++;
                     input_timestamp = Systick_getMsTick();
                     last_turn = now_turn;
                 }
-                else if (dturn < 0){
+                else if (dturn < 0) {
                     if (flash_save_data.addr > 0)      flash_save_data.addr--;
                     input_timestamp = Systick_getMsTick();
                     last_turn = now_turn;
                 }
-                if (Systick_getMsTick() - input_timestamp > 10000){
+                if (Systick_getMsTick() - input_timestamp > 10000) {
                     ui_state = UiStates::CALIB_POS;
                     input_timestamp = Systick_getMsTick();
                 }
@@ -605,7 +472,7 @@ static void task_state(void)
                 ui_state = UiStates::SAVE_CONFIG;
                 break;
             case UiStates::SAVE_CONFIG:
-                saveConfigToFlash(&flash_save_data);
+                save_config_to_flash(&flash_save_data);
                 g_protocol_rx.setAddr(flash_save_data.addr);
                 last_turn = g_encoder.readAngleTurns();
                 ui_state = UiStates::IDLE;
@@ -613,33 +480,32 @@ static void task_state(void)
                 break;
         }   
     }
-    else{
+    else {
         last_turn = g_encoder.readAngleTurns();
-        if (ui_state != UiStates::IDLE){
+        if (ui_state != UiStates::IDLE) {
             ui_state = UiStates::IDLE;
             led_master = LedMaster::COMM;
         }
     }
 
-    if (BOOT_MODE == NORMAL_){
+    if (boot_mode == NORMAL_) {
         bool sel_pin = GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_0) == Bit_RESET;
-        if (sel_pin){
+        if (sel_pin) {
             led_master = LedMaster::ADDR;
         }
-        else{
+        else {
             led_master = LedMaster::COMM;
         }
     }
 }
 
-static void task_led(void)
-{
+static void task_led(void) {
     NON_BLOCK_DELAY(150);
     static uint8_t now_addr_cnt = 0;
     static uint8_t gap_cnt = 0;
     static LedMaster last_led_master = LedMaster::COMM;
     static uint8_t now_addr = 0;
-    if (led_master != last_led_master){
+    if (led_master != last_led_master) {
         last_led_master = led_master;
         now_addr_cnt = 0;
         led_addr_state = LedAddrStates::OFF;
@@ -647,7 +513,7 @@ static void task_led(void)
         LED_OFF;
         return;
     }
-    if (led_master == LedMaster::ADDR){
+    if (led_master == LedMaster::ADDR) {
         switch (led_addr_state) {
             case LedAddrStates::OFF:
                 led_addr_state = LedAddrStates::ON;
@@ -660,7 +526,7 @@ static void task_led(void)
                     led_addr_state = LedAddrStates::GAP;
                     gap_cnt = 0;
                 }
-                else{
+                else {
                     led_addr_state = LedAddrStates::OFF;
                 }
                 LED_OFF;
@@ -678,75 +544,15 @@ static void task_led(void)
     }
 }
 
-#if (FOC_LINK_MODE == FOC_LINK_TM)
-/* 帧时间戳 = 控制拍计数（定义见文件上方 g_tick_count）。 */
-static inline uint32_t tm_stamp(void)
-{
-    return g_tick_count;
-}
-
-/* 触发一次 44B DMA 发送（当前槽）并切到另一槽。 */
-static inline void tm_dma_kick(void)
-{
-    DMA_Cmd(DMA1_Channel6, DISABLE);
-    DMA1_Channel6->CNTR  = TM_FRAME_BYTES;
-    DMA1_Channel6->MADDR = (uint32_t)s_txbuf[s_tx_slot];
-    DMA_ClearFlag(DMA1_FLAG_TC6);
-    DMA_Cmd(DMA1_Channel6, ENABLE);
-    s_tx_slot ^= 1;
-}
-
-static void tm_tx_frame(void)
-{
-    /* 校准期（g_foc.calibrating=true）主循环有 printf 写 USART1，暂停 DMA 避免毁帧 */
-    if (g_foc.calibrating) return;
-
-    uint32_t *d = s_txbuf[s_tx_slot];
-#if !FOC_TM_LOOP
-    const int32_t iu = g_foc.getIu().val;
-    const int32_t iv = g_foc.getIv().val;
-    d[TM_IU]   = (uint32_t)iu;
-    d[TM_IV]   = (uint32_t)iv;
-    d[TM_IW]   = (uint32_t)(-(iu + iv));
-    d[TM_ID]   = (uint32_t)g_foc.getId().val;
-    d[TM_IQ]   = (uint32_t)g_foc.getIq().val;
-    d[TM_VD]   = (uint32_t)g_foc.getVdRef().val;
-    d[TM_VQ]   = (uint32_t)g_foc.getVqRef().val;
-    d[TM_ANG]  = (uint32_t)g_foc.getMechanAng().val;
-    d[TM_PRED] = (uint32_t)g_foc.getPredElecAng().val;   /* 控制环预测电角（含 LEAD_TICKS 补偿） */
-#else
-    d[TM_SREF] = (uint32_t)g_foc.getSpeedRef().val;   /* 速度给定（速度环基准 / 位置环输出） */
-    d[TM_SFB]  = (uint32_t)g_foc.getSpeedFb().val;
-    d[TM_PREF] = (uint32_t)g_foc.getPosRef().val;
-    d[TM_PFB]  = (uint32_t)g_foc.getPosFb().val;
-    d[TM_IQR]  = (uint32_t)g_foc.getIqRef().val;      /* iq 给定（速度环输出） */
-    d[TM_IQ]   = (uint32_t)g_foc.getIq().val;
-    d[TM_ID]   = (uint32_t)g_foc.getId().val;
-    d[TM_VD]   = (uint32_t)g_foc.getVdRef().val;
-    d[TM_VQ]   = (uint32_t)g_foc.getVqRef().val;
-    d[TM_ANG]  = (uint32_t)g_foc.getMechanAng().val;
-    d[TM_ABF_ANG]  = (uint32_t)g_foc.getABFiltState1().val;
-    d[TM_ESO_SPD]  = (uint32_t)g_foc.getEsoState1().val;
-    d[TM_ESO_DIST] = (uint32_t)g_foc.getEsoState2().val;
-#endif
-    d[TM_TSTAMP] = tm_stamp();
-    d[TM_NCH]  = 0x7F800000u;           /* JustFloat 尾 00 00 80 7F */
-    tm_dma_kick();
-}
-#endif  /* FOC_LINK_MODE == FOC_LINK_TM */
-
-#if (FOC_LINK_MODE == FOC_LINK_PROTOCOL)
-static void task_protocol(void)
-{
+static void task_protocol(void) {
     // NON_BLOCK_DELAY(1);
     uint8_t byte;
-    while (g_uart.readByte(byte)){
+    while (g_uart.readByte(byte)) {
         g_protocol_rx.processCmdFrame(byte);
     }
 }
 
-void cmd_execute(bool is_valid, uint8_t tag, uint8_t cmd, uint32_t data)
-{
+void cmd_execute(bool is_valid, uint8_t tag, uint8_t cmd, uint32_t data) {
     if (led_master == LedMaster::COMM) LED_ON;
     uint32_t v[3];
     memset(v, 0, sizeof(v));
@@ -761,11 +567,11 @@ void cmd_execute(bool is_valid, uint8_t tag, uint8_t cmd, uint32_t data)
     int n = 1;
     DataFrameType type = DataFrameType::SHORT;
     bool rejected = false;
-    if (!is_valid){
+    if (!is_valid) {
         n = 3;
         type = DataFrameType::REQUIRE_RESEND;
     }
-    else{
+    else {
         switch ((Cmd)cmd) {
             case Cmd::SET_MODE:
                 flash_save_data.cfg.loop_mode = static_cast<FocLoopMode>(data);
@@ -869,7 +675,7 @@ void cmd_execute(bool is_valid, uint8_t tag, uint8_t cmd, uint32_t data)
         }
         if (n == 3) fill_feedback();
         /* DEBUG COMMANDS */
-        if (BOOT_MODE == DEBUG_){
+        if (boot_mode == DEBUG_) {
             switch ((CmdDebug)cmd) {
                 case CmdDebug::CALIB_ZERO_POS:
                     calib_pos_requested = true;
@@ -897,9 +703,9 @@ void cmd_execute(bool is_valid, uint8_t tag, uint8_t cmd, uint32_t data)
                     break;
                 }
                 case CmdDebug::SAVE_CONFIG: {
-                    bool en_bak = g_foc.en_;
+                    bool en_bak = g_foc.m_en;
                     g_foc.disable();
-                    saveConfigToFlash(&flash_save_data);
+                    save_config_to_flash(&flash_save_data);
                     if (en_bak) g_foc.enable();
                     n = 1;
                     break;
@@ -923,18 +729,18 @@ void cmd_execute(bool is_valid, uint8_t tag, uint8_t cmd, uint32_t data)
                     break;
             }
         }
-        if (rejected){
+        if (rejected) {
             n = 3;
             type = DataFrameType::FAULT;
             fill_feedback();
         }
         else if ((uint8_t)cmd > (uint8_t)CmdDebug::SET_CONT_ANG_ZERO_OFFSET || // reserved
-                 ((uint8_t)cmd > (uint8_t)Cmd::CLEAR_FAULT && BOOT_MODE != DEBUG_)){ // not in debug
+                 ((uint8_t)cmd > (uint8_t)Cmd::CLEAR_FAULT && boot_mode != DEBUG_)) { // not in debug
             n = 3;
             type = DataFrameType::NOT_SUPPORTED;
             fill_feedback();
         }
-        else{
+        else {
             const bool warn = (sys_reg.warning.warning != 0);
             type = (n == 3) ? (warn ? DataFrameType::LONG_WITH_WARNING : DataFrameType::LONG)
                             : (warn ? DataFrameType::SHORT_WITH_WARNING : DataFrameType::SHORT);
@@ -950,10 +756,8 @@ void cmd_execute(bool is_valid, uint8_t tag, uint8_t cmd, uint32_t data)
     if (!trans_ok) g_protocol_rx.cpltSend(); // busy, discard this frame
 }
 
-void uart_tx_cplt_callback(void)
-{
+void uart_tx_cplt_callback(void) {
     g_uart.receive_variable_on();
     g_protocol_rx.cpltSend();
     if (led_master == LedMaster::COMM) LED_OFF;
 }
-#endif  /* FOC_LINK_MODE == FOC_LINK_PROTOCOL */

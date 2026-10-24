@@ -6,7 +6,7 @@
 #include "systick_time.h"
 #include <stdint.h>
 
-#define MT6701_RAW_MAX        16384  ///< 2^14 LSB per revolution
+#define MT6701_RAW_MAX        16384  // 2^14 LSB per revolution
 
 class MT6701_SSI
 {
@@ -49,18 +49,18 @@ public:
     int32_t readAngleTurns() const { return turn_cnt_; }
 
 private:
-    SimuSSI<24>& m_ssi;         /**< @brief SSI bus instance */
+    SimuSSI<24>& m_ssi;  // SSI bus instance
 
     bool first_sample_ = true;
-    bool first_async = true;   /**< @brief first async read: fire a read */
+    bool first_async = true;  // first async read: fire a read
 
     /* ---- Helpers ---- */
     /** @brief raw -> radians, wrapped to [0, 2π). */
     q24_t rawToRad(uint32_t raw);
 
     /* ---- Cached angle (written by updaters, read by readers) ---- */
-    volatile uint16_t raw_ = 0;     /**< @brief latest raw 14-bit count */
-    volatile uint16_t prev_raw_ = 0; /**< @brief previous raw count (for turn counting) */
-    q24_t    rad_ = q24(0.0f);  /**< @brief latest angle in radians (offset+wrap) */
-    volatile int32_t  turn_cnt_ = 0; /**< @brief turn count (increments on wrap-around) */
+    volatile uint16_t raw_ = 0;  // latest raw 14-bit count
+    volatile uint16_t prev_raw_ = 0;  // previous raw count (for turn counting)
+    q24_t    rad_ = q24(0.0f);  // latest angle in radians (offset+wrap)
+    volatile int32_t  turn_cnt_ = 0;  // turn count (increments on wrap-around)
 };

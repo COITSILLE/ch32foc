@@ -1,10 +1,11 @@
 #pragma once
 
-#include "sys_interface.h"
-#include "uart_halfduplex.h"
-#include "sstrtotype.h"
+#include <cstdint>
+#include <cstring>
+#include "systick_time.h"
 
-struct long_cmd_frame{
+/** @brief Long command frame: address + command byte, four data bytes and a CRC byte. */
+struct LongCmdFrame {
     uint8_t addr_n_cmd;
     uint8_t data[4];
     uint8_t checksum;
@@ -20,7 +21,8 @@ enum class DataFrameType : uint8_t {
     NOT_SUPPORTED = 0x04,
 };
 
-struct data_frame{
+/** @brief Response frame payload: type byte, data words and a CRC byte. */
+struct DataFrame {
     uint8_t type;
     uint8_t* data;
     uint8_t checksum;
@@ -73,47 +75,62 @@ enum class CmdDebug : uint8_t {
 #define ADDR_MASK 0xe0
 #define CMD_MASK 0x1f
 
+/** @brief Advance the CRC byte with one received byte (table driven). */
 void do_crc(uint8_t* crc, uint8_t new_data);
 
 using cmd_rcv_callback_t = void(*)(bool is_valid, uint8_t tag, uint8_t cmd, uint32_t data);
 
-class DeviceProtocolRx{
+/** @brief Byte-wise command frame parser for the half-duplex protocol. */
+class DeviceProtocolRx {
 public:
-    DeviceProtocolRx(cmd_rcv_callback_t callback) : cmd_callback(callback) {}
+    /** @brief Store the callback invoked once a frame has been received. */
+    DeviceProtocolRx(cmd_rcv_callback_t callback) : m_cmd_callback(callback) {}
 
-    void setAddr(uint8_t addr) { device_addr_ = (addr > 7 ? 7 : addr); }
+    /** @brief Set the device address matched against incoming frames (clamped to 7). */
+    void setAddr(uint8_t addr) { m_device_addr = (addr > 7 ? 7 : addr); }
 
+    /** @brief Feed one received byte into the frame state machine. */
     void processCmdFrame(uint8_t rx_byte);
 
+    /** @brief Abort a partially received frame if it stalled. */
     void updateTimeoutState();
 
-    void cpltSend() { if (state == AWAITS_SEND) state = IDLE; }
+    /** @brief Leave the awaiting-send state once the response has been handed off. */
+    void cpltSend() { if (m_state == AWAITS_SEND) m_state = IDLE; }
 private:
     enum {
         AWAITS_SEND = 0,
         IDLE,
         DATA,
         CHECKSUM,
-    } state = IDLE;
+    } m_state = IDLE;
 
-    uint8_t device_addr_ = 0x00;
+    uint8_t m_device_addr = 0x00;
 
-    cmd_rcv_callback_t cmd_callback = nullptr;
+    cmd_rcv_callback_t m_cmd_callback = nullptr;
 
-    uint8_t data_index = 0;
-    uint8_t data_buf[4] = {0};
-    long_cmd_frame last_cmd_frame_ = {0};
+    uint8_t m_data_index = 0;
+    uint8_t m_data_buffer[4] = {0};
+    LongCmdFrame m_last_cmd_frame = {0};
 
-    uint32_t timeout_stamp = 0;
+    uint32_t m_timeout_stamp = 0;
 };
 
-class DeviceProtocolTx{
+/** @brief Builder for a response frame (header, data words, CRC). */
+class DeviceProtocolTx {
 public:
+    /** @brief Set the tag bits of the response header. */
     void setTag(uint8_t tag);
+    /** @brief Set the frame type and start a new frame. */
     void setType(DataFrameType type);
+    /** @brief Append the data words of the frame. */
     void setData(const uint8_t* data, int len);
-    int getTxFrame(uint8_t* buf);
+    /**
+     * @brief Append the CRC and copy the finished frame out.
+     * @return Frame length in bytes.
+     */
+    int getTxFrame(uint8_t* buffer);
 private:
-    uint8_t tx_buf_[16] = {0};
-    int tx_len_ = 0;
+    uint8_t m_tx_buffer[16] = {0};
+    int m_tx_len = 0;
 };

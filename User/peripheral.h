@@ -2,13 +2,10 @@
 
 #include "ch32m030_conf.h"
 
-/* 注：模拟 SSI 的接线/通道宏已随驱动一起收进 lib/drivers/simu_ssi.h 的
- * SimuSSIConfig 配置项（默认值即原宏值），这里不再需要 include 那个 C++ 头。 */
-
-/* ===== ADC 注入组配置（ADC1_Init 使用）===== */
-#define FOC_ADC_JL          2u      /* 注入通道数：= ADC1_Init 里 ADC_InjectedSequencerLengthConfig 的实参 */
-#define FOC_ADC_SMPL_SEL    ADC_SampleTime_5Cycles5   /* 给 ADC 用的采样时间选择 */
-#define FOC_ADC_ADCPRE_SEL  RCC_HB_Div8                /* 给 RCC 用的 ADC 时钟分频选择 */
+/* ===== ADC injected group configuration (used by ADC1_Init) ===== */
+#define FOC_ADC_JL          2u  // injected channel count (argument of ADC_InjectedSequencerLengthConfig)
+#define FOC_ADC_SMPL_SEL    ADC_SampleTime_5Cycles5
+#define FOC_ADC_ADCPRE_SEL  RCC_HB_Div8
 
 #define VBUS_MIN_V  8.5f
 #define VBUS_MAX_V  21.0f
@@ -27,11 +24,11 @@ extern "C" {
 #define GPIO_Pin_SEL         GPIO_Pin_0
 
 void UART_Init(uint32_t baudrate);
-void GPIO_LED_Init();
-void GPIO_Sel_Init();
+void GPIO_LED_Init(void);
+void GPIO_Sel_Init(void);
 void TIM1_Init(void);
-void TIM2_Init(void);   /* 采样开始硬件标记：TIM2 从模式复位(TRGO) + PA5/PA4 输出 */
-void TIM3_Init(void);   /* 编码器驱动：2kHz 更新中断 */
+void TIM2_Init(void);  // sampling start hardware marker: TIM2 slave reset (TRGO) + PA5/PA4 output
+void TIM3_Init(void);  // encoder driver: 2kHz update interrupt
 
 #define SIMU_SSI_TIM        TIM3
 
@@ -52,12 +49,11 @@ void TIM3_Init(void);   /* 编码器驱动：2kHz 更新中断 */
 #define SSI_EDGES 48u
 #define SSI_BITS  56u
 
-void Simu_SSI_Perips_Init();   /* 模拟 SSI：用于与外部设备通信 */
+void Simu_SSI_Perips_Init(void);
 void OPA_Init(void);
 void ADC1_Init(void);
-void USART1_DMA_TX_Init(void);   /* 闭环 1kHz DMA 遥测：DMA1_Channel6(=USART1_TX) + TC 中断 */
 
-void ADC1_ResetVbusIrq();
+void ADC1_ResetVbusIrq(void);
 #ifdef __cplusplus
 }
 #endif

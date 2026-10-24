@@ -1,6 +1,4 @@
 #include "uart_halfduplex.h"
-#include <assert.h>
-#include <cstdint>
 
 UART_HalfDuplex::UART_HalfDuplex(const Config& config, CallbackFuncs cbs)
     : cfg_(config), cbs_(cbs) {

@@ -1,9 +1,8 @@
 #pragma once
 
 #include "ch32m030.h"
-#include "sys_interface.h"
-#include "ring_buffer.h"
 #include <cstdint>
+#include <assert.h>
 
 #ifdef __cplusplus
 

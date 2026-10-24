@@ -87,13 +87,13 @@
 #define M_SQRT3	    1.73205080756887719000F
 #endif
 #ifndef M_IVLN10
-#define M_IVLN10    0.43429448190325182765F /* 1 / log(10) */
+#define M_IVLN10    0.43429448190325182765F  // 1 / log(10)
 #endif
 #ifndef M_LOG2_E
 #define M_LOG2_E    _M_LN2
 #endif
 #ifndef M_INVLN2
-#define M_INVLN2    1.4426950408889633870E0  /* 1 / log(2) */
+#define M_INVLN2    1.4426950408889633870E0  // 1 / log(2)
 #endif
 
 #ifndef RAD_TO_DEG_C

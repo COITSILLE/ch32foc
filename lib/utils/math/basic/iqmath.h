@@ -113,7 +113,7 @@ constexpr q24_t q24(double) = delete;
 
 class q24_t{
 public:
-    q24_raw_t val;  ///< raw Q7.24 value
+    q24_raw_t val;  // raw Q7.24 value
 
     /** @brief Construct from any integral math value (bool excluded, avoids implicit 0/1 traps).
      *  Treats the int as a real number: q24_t(32) == q24_t(32.0f) == 32.0.
@@ -269,12 +269,12 @@ static inline constexpr bool is_float_ov_q24(float x){
     uint32_t exp = (raw >> 23) & 0xFF;
     uint32_t mant = raw & 0x007FFFFFu;
     uint32_t sign = raw & 0x80000000u;
-    if (exp == 0xFFu) return true;            // Inf / NaN：非法，走 float 路径
+    if (exp == 0xFFu) return true;            // Inf / NaN: invalid, take the float path
     if (exp >= 134){
-        // |x| >= 128：仅恰好 -128.0f（Q24_MIN，负号且尾数为 0）合法
+        // |x| >= 128: only exactly -128.0f (Q24_MIN) is valid
         return !(sign && (exp == 134) && (mant == 0));
     }
-    return false;                             // 0 / 次正规 / |x| < 128：均在范围内
+    return false;                             // 0 / subnormal / |x| < 128: all in range
 }
 
 static inline constexpr int float_ov_q24(float x){
@@ -288,9 +288,9 @@ static inline constexpr int float_ov_q24(float x){
     }
     if (exp >= 134){
         if (sign && (exp == 134) && (mant == 0)) return 0;  // -128.0f no overflow
-        return sign ? -1 : 1;                 // 负下溢 / 正上溢
+        return sign ? -1 : 1;                 // negative underflow / positive overflow
     }
-    return 0;                                 // 0 / 次正规 / |x| < 128：no overflow
+    return 0;                                 // 0 / subnormal / |x| < 128: no overflow
 }
 
 /* ===================== 5. ARITHMETIC OPERATORS ===================== */
@@ -498,32 +498,32 @@ Q24_DEF_REV_CMP_FLT(!=, !=)
  *       truncate toward zero and would shift some constants by 1 LSB.
  * @{
  */
-constexpr q24_t Q24_MAX          = q24_t::from_raw(INT32_MAX);                  /*  127.9999999 */
-constexpr q24_t Q24_MIN          = q24_t::from_raw(INT32_MIN);                  /* -128.0        */
-constexpr q24_t Q24_ZERO         = q24_t::from_raw(0);                          /*    0.0        */
-constexpr q24_t Q24_ONE          = q24_t::from_raw(1 << 24);                    /*    1.0        */
-constexpr q24_t Q24_HALF         = q24_t::from_raw(1 << 23);                    /*    0.5        */
-constexpr q24_t Q24_TWO          = q24_t::from_raw(2 << 24);                    /*    2.0        */
-constexpr q24_t Q24_LN2          = q24_t::from_raw(0x00B17218);                 /*    0.6931472  ln2      */
-constexpr q24_t Q24_LOG2_E       = Q24_LN2;                           /* alias = ln2           */
-constexpr q24_t Q24_E            = q24_t::from_raw(0x02B7E151);                 /*    2.7182818  e        */
-constexpr q24_t Q24_LOG2E        = q24_t::from_raw(0x01715476);                 /*    1.4426950  log2(e)  */
-constexpr q24_t Q24_INVLN2       = Q24_LOG2E;                         /* alias = 1/ln2         */
-constexpr q24_t Q24_LN10         = q24_t::from_raw(0x024D7637);                 /*    2.3025851  ln10     */
-constexpr q24_t Q24_LOG10E       = q24_t::from_raw(0x006F2DEC);                 /*    0.4342945  log10(e) */
-constexpr q24_t Q24_IVLN10       = Q24_LOG10E;                        /* alias = 1/ln10        */
-constexpr q24_t Q24_PI           = q24_t::from_raw(0x03243F6B);                 /*    3.1415927  π        */
-constexpr q24_t Q24_PI_2         = q24_t::from_raw(0x01921FB5);                 /*    1.5707963  π/2      */
-constexpr q24_t Q24_TWOPI        = q24_t::from_raw(0x06487ED5);                 /*    6.2831853  2π       */
-constexpr q24_t Q24_PI_4         = q24_t::from_raw(0x00C90FDB);                 /*    0.7853982  π/4      */
-constexpr q24_t Q24_3PI_4        = q24_t::from_raw(0x025B2F90);                 /*    2.3561945  3π/4     */
-constexpr q24_t Q24_1_PI         = q24_t::from_raw(0x00517CC2);                 /*    0.3183099  1/π      */
-constexpr q24_t Q24_2_PI         = q24_t::from_raw(0x00A2F983);                 /*    0.6366198  2/π      */
-constexpr q24_t Q24_SQRT2        = q24_t::from_raw(0x016A09E6);                 /*    1.4142136  √2       */
-constexpr q24_t Q24_SQRT1_2      = q24_t::from_raw(0x00B504F3);                 /*    0.7071068  1/√２     */
-constexpr q24_t Q24_SQRT3        = q24_t::from_raw(0x01BB67AF);                 /*    1.7320508  √3       */
-constexpr q24_t Q24_SQRTPI       = q24_t::from_raw(0x01C5BF89);                 /*    1.7724539  √π       */
-constexpr q24_t Q24_2_SQRTPI     = q24_t::from_raw(0x0120DD75);                 /*    1.1283792  2/√π     */
+constexpr q24_t Q24_MAX          = q24_t::from_raw(INT32_MAX);  // 127.9999999
+constexpr q24_t Q24_MIN          = q24_t::from_raw(INT32_MIN);  // -128.0
+constexpr q24_t Q24_ZERO         = q24_t::from_raw(0);  // 0.0
+constexpr q24_t Q24_ONE          = q24_t::from_raw(1 << 24);  // 1.0
+constexpr q24_t Q24_HALF         = q24_t::from_raw(1 << 23);  // 0.5
+constexpr q24_t Q24_TWO          = q24_t::from_raw(2 << 24);  // 2.0
+constexpr q24_t Q24_LN2          = q24_t::from_raw(0x00B17218);  // 0.6931472  ln2
+constexpr q24_t Q24_LOG2_E       = Q24_LN2;  // alias = ln2
+constexpr q24_t Q24_E            = q24_t::from_raw(0x02B7E151);  // 2.7182818  e
+constexpr q24_t Q24_LOG2E        = q24_t::from_raw(0x01715476);  // 1.4426950  log2(e)
+constexpr q24_t Q24_INVLN2       = Q24_LOG2E;  // alias = 1/ln2
+constexpr q24_t Q24_LN10         = q24_t::from_raw(0x024D7637);  // 2.3025851  ln10
+constexpr q24_t Q24_LOG10E       = q24_t::from_raw(0x006F2DEC);  // 0.4342945  log10(e)
+constexpr q24_t Q24_IVLN10       = Q24_LOG10E;  // alias = 1/ln10
+constexpr q24_t Q24_PI           = q24_t::from_raw(0x03243F6B);  // 3.1415927  π
+constexpr q24_t Q24_PI_2         = q24_t::from_raw(0x01921FB5);  // 1.5707963  π/2
+constexpr q24_t Q24_TWOPI        = q24_t::from_raw(0x06487ED5);  // 6.2831853  2π
+constexpr q24_t Q24_PI_4         = q24_t::from_raw(0x00C90FDB);  // 0.7853982  π/4
+constexpr q24_t Q24_3PI_4        = q24_t::from_raw(0x025B2F90);  // 2.3561945  3π/4
+constexpr q24_t Q24_1_PI         = q24_t::from_raw(0x00517CC2);  // 0.3183099  1/π
+constexpr q24_t Q24_2_PI         = q24_t::from_raw(0x00A2F983);  // 0.6366198  2/π
+constexpr q24_t Q24_SQRT2        = q24_t::from_raw(0x016A09E6);  // 1.4142136  √2
+constexpr q24_t Q24_SQRT1_2      = q24_t::from_raw(0x00B504F3);  // 0.7071068 = 1/sqrt(2)
+constexpr q24_t Q24_SQRT3        = q24_t::from_raw(0x01BB67AF);  // 1.7320508  √3
+constexpr q24_t Q24_SQRTPI       = q24_t::from_raw(0x01C5BF89);  // 1.7724539  √π
+constexpr q24_t Q24_2_SQRTPI     = q24_t::from_raw(0x0120DD75);  // 1.1283792  2/√π
 /** @} */
 
 /* ===================== 8. MATH FUNCTION DECLARATIONS ===================== */

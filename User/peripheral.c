@@ -1,16 +1,8 @@
 #include "ch32m030.h"
-#include "ch32m030_adc.h"
-#include "ch32m030_tim.h"
-#include "ch32m030_dma.h"
-#include "ch32m030_uart.h"
-#include "core_riscv.h"
-#include "debug.h"
 #include "peripheral.h"
-#include "system_ch32m030.h"
-#include "systick_time.h"
-#include "foc_config.h"
+#include "sys_interface.h"
 
-void UART_Init(uint32_t baudrate){
+void UART_Init(uint32_t baudrate) {
     GPIO_InitTypeDef  GPIO_InitStructure;
     USART_InitTypeDef USART_InitStructure;
 
@@ -63,41 +55,7 @@ void UART_Init(uint32_t baudrate){
     DMA_Init(UART_DMA_RX_CHANNEL, &dma);
 }
 
-/*********************************************************************
- * @fn      USART1_DMA_TX_Init
- *
- * @brief   2kHz 遥测的 DMA 发送配置（USART1_TX → DMA1_Channel6，Normal 模式）。
- *          需在 USART_Printf_Init(2000000) 之后调用（本函数不改波特率）。
- *          每帧的 MADDR/CNTR 与重使能由 app 层（main.cpp tm_tx_frame）逐帧做；
- *          这里只做一次性的通道/中断/外设 DMA 请求使能。
- * @return  none
- */
-void USART1_DMA_TX_Init(void)
-{
-    DMA_InitTypeDef dma = {0};
-
-    RCC_HBPeriphClockCmd(RCC_HBPeriph_DMA1, ENABLE);
-    DMA_DeInit(DMA1_Channel6);
-
-    dma.DMA_PeripheralBaseAddr = (uint32_t)&USART1->DATAR;
-    dma.DMA_MemoryBaseAddr     = 0;                 /* 每帧装载时由 app 层设 */
-    dma.DMA_DIR                = DMA_DIR_PeripheralDST;
-    dma.DMA_BufferSize         = 44;                /* 10 通道×4B + 尾 4B = 44（app 层每帧重设 CNTR） */
-    dma.DMA_PeripheralInc      = DMA_PeripheralInc_Disable;
-    dma.DMA_MemoryInc          = DMA_MemoryInc_Enable;
-    dma.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
-    dma.DMA_MemoryDataSize     = DMA_MemoryDataSize_Byte;
-    dma.DMA_Mode               = DMA_Mode_Normal;   /* 发完硬件自清 EN，逐帧重武装 */
-    dma.DMA_Priority           = DMA_Priority_High;
-    dma.DMA_M2M                = DMA_M2M_Disable;
-    DMA_Init(DMA1_Channel6, &dma);
-
-    /* 不再用 DMA TC 中断：发送完成由启动器(main.cpp tm_tx_1k)轮询 DMA1_FLAG_TC6 判断，
-     * 因此这里不使能 TC IT / NVIC（避免无 ISR 时进 weak 死循环）。 */
-    USART_DMACmd(USART1, USART_DMAReq_Tx, ENABLE);
-}
-
-void GPIO_LED_Init(){
+void GPIO_LED_Init(void) {
     GPIO_InitTypeDef GPIO_InitStructure = {0};
 
     RCC_PB2PeriphClockCmd(RCC_PB2Periph_GPIOA, ENABLE);
@@ -108,7 +66,7 @@ void GPIO_LED_Init(){
     GPIO_SetBits(GPIOA, GPIO_Pin_7);
 }
 
-void GPIO_Sel_Init(){
+void GPIO_Sel_Init(void) {
     GPIO_InitTypeDef GPIO_InitStructure = {0};
 
     RCC_PB2PeriphClockCmd(RCC_PB2Periph_GPIOB, ENABLE);
@@ -128,13 +86,13 @@ void GPIO_Sel_Init(){
     EXTEN->EXTEN_CTLR1 &= ~(EXTEN_UDP_DAC);
     EXTEN->EXTEN_CTLR1 |= 0xFFFFFFFF & EXTEN_UDP_DAC; // DAC[5:0] = 111111, Pull-up 15.5kohm
 
-    EXTEN->EXTEN_CTLR1 &= ~(EXTEN_UDP_BUFOE); //enable
+    EXTEN->EXTEN_CTLR1 &= ~(EXTEN_UDP_BUFOE);
 }
 
-void TIM1_Init(){
+void TIM1_Init() {
     const uint16_t arr = 3600 - 1;
     const uint16_t psc = 1 - 1;
-    const uint16_t ccp = 1800;  /* 50% */
+    const uint16_t ccp = 1800;  // 50%
 
     GPIO_InitTypeDef        GPIO_InitStructure = {0};
     TIM_OCInitTypeDef       TIM_OCInitStructure = {0};
@@ -186,7 +144,7 @@ void TIM1_Init(){
     // calculate deadtime register value
     const float deadtime_ns = 100.0f;
     const float tdtg_ns = 1e9f / __CORECLOCK_HZ__;
-    uint16_t dtg = (uint16_t)(deadtime_ns / tdtg_ns + 0.999f);  /* ceil */
+    uint16_t dtg = (uint16_t)(deadtime_ns / tdtg_ns + 0.999f);  // ceil
     if (dtg > 0xFFu) dtg = 0xFFu;
 
     TIM_BDTRInitStructure.TIM_OSSIState = TIM_OSSIState_Enable;
@@ -213,8 +171,7 @@ void TIM1_Init(){
     TIM_Cmd(TIM1, ENABLE);
 }
 
-void TIM2_Init(void)
-{
+void TIM2_Init(void) {
     TIM_TimeBaseInitTypeDef t = {0};
 
     RCC_PB1PeriphClockCmd(RCC_PB1Periph_TIM2, ENABLE);
@@ -234,15 +191,14 @@ void TIM2_Init(void)
 
 #define TIM3_PERIOD 72
 
-void TIM3_Init(void)
-{
+void TIM3_Init(void) {
     TIM_TimeBaseInitTypeDef t = {0};
     TIM_OCInitTypeDef       oc = {0};
 
     RCC_PB1PeriphClockCmd(RCC_PB1Periph_TIM3, ENABLE);
 
     t.TIM_Prescaler    = 1 - 1;    
-    t.TIM_Period       = TIM3_PERIOD - 1;  /* ARR：1 → 72MHz/72/1 = 1MHz */
+    t.TIM_Period       = TIM3_PERIOD - 1;  // ARR: 72MHz / 72 / 1 = 1MHz
     t.TIM_ClockDivision = TIM_CKD_DIV1;
     t.TIM_CounterMode   = TIM_CounterMode_Up;
     TIM_TimeBaseInit(TIM3, &t);
@@ -251,7 +207,7 @@ void TIM3_Init(void)
     oc.TIM_OutputState = TIM_OutputState_Disable;
     oc.TIM_OCNIdleState = TIM_OCNIdleState_Reset;
     oc.TIM_OCPolarity = TIM_OCPolarity_High;
-    oc.TIM_Pulse = TIM3_PERIOD / 2;  /* 50% */
+    oc.TIM_Pulse = TIM3_PERIOD / 2;  // 50%
     TIM_OC1Init(TIM3, &oc);
     TIM_OC1PreloadConfig(TIM3, TIM_OCPreload_Disable);
     TIM_ARRPreloadConfig(TIM3, DISABLE);
@@ -260,7 +216,7 @@ void TIM3_Init(void)
     TIM_DMACmd(TIM3, TIM_DMA_Update, ENABLE);
 }
 
-void Simu_SSI_Perips_Init(){
+void Simu_SSI_Perips_Init(void) {
     GPIO_InitTypeDef GPIO_InitStructure = {0};
     DMA_InitTypeDef  DMA_InitStructure  = {0};
 
@@ -312,8 +268,7 @@ void Simu_SSI_Perips_Init(){
     NVIC_EnableIRQ(SSI_DIO_DMA_IRQn);
 }
 
-void OPA_Init(void)
-{
+void OPA_Init(void) {
     OPA_ISP_InitTypeDef OPA_ISP_InitStruct = {0};
     GPIO_InitTypeDef     GPIO_InitStructure = {0};
 
@@ -340,7 +295,7 @@ void OPA_Init(void)
     OPA_ISP_Cmd(OPA4_ISP2,ENABLE);
 }
 
-void ADC1_Init(){
+void ADC1_Init() {
     ADC_InitTypeDef  ADC_InitStructure = {0};
     GPIO_InitTypeDef GPIO_InitStructure = {0};
 
@@ -381,9 +336,9 @@ void ADC1_Init(){
     ADC_AverageValueThresholdsConfig(ADC1, avg_high_threshold, avg_low_threshold);
 
     ADC_ResetCalibration(ADC1);
-    while(ADC_GetResetCalibrationStatus(ADC1));
+    while (ADC_GetResetCalibrationStatus(ADC1));
     ADC_StartCalibration(ADC1);
-    while(ADC_GetCalibrationStatus(ADC1));
+    while (ADC_GetCalibrationStatus(ADC1));
 
     ADC_SoftwareStartConvCmd(ADC1, ENABLE);
 
@@ -401,7 +356,7 @@ void ADC1_Init(){
     ADC_AnalogWatchdogThresholdsConfig(ADC1, awg_high_threshold, awg_low_threshold);
 }
 
-void ADC1_ResetVbusIrq(){
+void ADC1_ResetVbusIrq(void) {
     ADC_ClearITPendingBit(ADC1, ADC_IT_AVG_OV);
     ADC_ClearITPendingBit(ADC1, ADC_IT_AVG_DN);
     ADC_ClearITPendingBit(ADC1, ADC_IT_AWD_OV);

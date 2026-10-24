@@ -1,5 +1,5 @@
 #include "iqmath.h"
-#include "iqmath_lut.h"        /* LUTs: rec/slp (div) + sin/sqrt + poly coefficients */
+#include "iqmath_lut.h"  // LUTs: rec/slp (div) + sin/sqrt + poly coefficients
 
 /* This file implements the runtime functions; operator+ - *, satq24 / q24_mac and the
  * arithmetic operators live in iqmath.h as static inline constexpr. For division, the
@@ -61,7 +61,7 @@ q24_t q24_div(q24_t a, q24_t b){
     }
     int64_t dividend = ((int64_t)a.val << 24); // Q24
     int64_t quotient = dividend / (int64_t)b.val;
-    return satq24(quotient);    // 与运算符一致：恒饱和（需要不饱和时由调用方另行处理）
+    return satq24(quotient);    // same as the operators: always saturating (callers handle the non-saturating case)
 }
 #endif
 
